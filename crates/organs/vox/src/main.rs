@@ -8,6 +8,21 @@ fn main() {
     let args = OrganArgs::from_env();
     let op = args.op();
 
+    if let Some(stim) = args.stimulus.as_deref() {
+        if stim == "voice_activity" {
+            let threshold: f64 = args.get("threshold").and_then(|v| v.parse().ok()).unwrap_or(0.05);
+            let energy: f64 = 0.0;
+            organ_ok!(
+                "stimulus" => "voice_activity",
+                "energy" => energy,
+                "threshold" => threshold,
+                "triggered" => energy > threshold
+            );
+        } else {
+            organ_err!(format!("Unknown stimulus: {stim}"));
+        }
+    }
+
     if op == "vox_listen" || op == "listen" || args.sense.as_deref() == Some("hearing") {
         let seconds: u64 = args.get_or("seconds", "3").parse().unwrap_or(3);
         let dest = args.get("file").map(PathBuf::from).unwrap_or_else(|| {

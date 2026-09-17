@@ -69,6 +69,24 @@ mod win32 {
         pub fn GetLastInputInfo(plii: *mut LASTINPUTINFO) -> i32;
         pub fn GetTickCount() -> u32;
         pub fn GetSystemPowerStatus(lpSystemPowerStatus: *mut SYSTEM_POWER_STATUS) -> i32;
+        pub fn OpenInputDesktop(dwFlags: u32, fInherit: i32, dwDesiredAccess: u32) -> isize;
+        pub fn CloseDesktop(hDesktop: isize) -> i32;
+    }
+
+    #[repr(C)]
+    #[derive(Clone, Copy)]
+    pub struct FILETIME {
+        pub dw_low_date_time: u32,
+        pub dw_high_date_time: u32,
+    }
+
+    #[link(name = "kernel32")]
+    extern "system" {
+        pub fn GetSystemTimes(
+            lpIdleTime: *mut FILETIME,
+            lpKernelTime: *mut FILETIME,
+            lpUserTime: *mut FILETIME,
+        ) -> i32;
     }
 }
 
@@ -218,6 +236,71 @@ pub fn get_audio_devices() -> Vec<String> {
     Vec::new()
 }
 
+#[cfg(windows)]
+fn is_display_locked() -> bool {
+    unsafe {
+        let desk = win32::OpenInputDesktop(0, 0, 0x0100 /* DESKTOP_SWITCHDESKTOP */);
+        if desk == 0 {
+            true
+        } else {
+            win32::CloseDesktop(desk);
+            false
+        }
+    }
+}
+
+#[cfg(not(windows))]
+fn is_display_locked() -> bool {
+    false
+}
+
+fn check_network_online() -> bool {
+    let addrs: [std::net::SocketAddr; 2] = [
+        "1.1.1.1:53".parse().unwrap(),
+        "8.8.8.8:53".parse().unwrap(),
+    ];
+    for addr in &addrs {
+        if std::net::TcpStream::connect_timeout(addr, std::time::Duration::from_millis(500)).is_ok() {
+            return true;
+        }
+    }
+    false
+}
+
+#[cfg(windows)]
+fn get_cpu_load_percent() -> f64 {
+    unsafe {
+        let mut idle1 = std::mem::zeroed();
+        let mut kernel1 = std::mem::zeroed();
+        let mut user1 = std::mem::zeroed();
+        if win32::GetSystemTimes(&mut idle1, &mut kernel1, &mut user1) == 0 {
+            return 0.0;
+        }
+        std::thread::sleep(std::time::Duration::from_millis(100));
+        let mut idle2 = std::mem::zeroed();
+        let mut kernel2 = std::mem::zeroed();
+        let mut user2 = std::mem::zeroed();
+        if win32::GetSystemTimes(&mut idle2, &mut kernel2, &mut user2) == 0 {
+            return 0.0;
+        }
+        let to_u64 = |ft: win32::FILETIME| ((ft.dw_high_date_time as u64) << 32) | (ft.dw_low_date_time as u64);
+        let idle = to_u64(idle2).saturating_sub(to_u64(idle1));
+        let kernel = to_u64(kernel2).saturating_sub(to_u64(kernel1));
+        let user = to_u64(user2).saturating_sub(to_u64(user1));
+        let total = kernel + user;
+        if total == 0 {
+            return 0.0;
+        }
+        let busy = total.saturating_sub(idle);
+        (busy as f64 / total as f64) * 100.0
+    }
+}
+
+#[cfg(not(windows))]
+fn get_cpu_load_percent() -> f64 {
+    0.0
+}
+
 fn main() {
     let args = OrganArgs::from_env();
 
@@ -250,6 +333,32 @@ fn main() {
                     "triggered" => triggered,
                 );
             }
+            "network_state" => {
+                let online = check_network_online();
+                organ_ok!(
+                    "stimulus" => "network_state",
+                    "online" => online,
+                    "triggered" => !online,
+                );
+            }
+            "display_locked" => {
+                let locked = is_display_locked();
+                organ_ok!(
+                    "stimulus" => "display_locked",
+                    "locked" => locked,
+                    "triggered" => locked,
+                );
+            }
+            "high_cpu" => {
+                let load = get_cpu_load_percent();
+                let threshold: f64 = args.get_u64("threshold_percent").unwrap_or(85) as f64;
+                organ_ok!(
+                    "stimulus" => "high_cpu",
+                    "cpu_percent" => load,
+                    "threshold_percent" => threshold,
+                    "triggered" => load >= threshold,
+                );
+            }
             other => {
                 organ_err!(format!("Unknown stimulus: {other}"));
             }
@@ -264,6 +373,32 @@ fn main() {
                     "status" => "ok",
                     "reflex" => reflex,
                     "action" => "priority_lowered"
+                );
+            }
+            "network_state" => {
+                let online = check_network_online();
+                organ_ok!(
+                    "stimulus" => "network_state",
+                    "online" => online,
+                    "triggered" => !online,
+                );
+            }
+            "display_locked" => {
+                let locked = is_display_locked();
+                organ_ok!(
+                    "stimulus" => "display_locked",
+                    "locked" => locked,
+                    "triggered" => locked,
+                );
+            }
+            "high_cpu" => {
+                let load = get_cpu_load_percent();
+                let threshold: f64 = args.get_u64("threshold_percent").unwrap_or(85) as f64;
+                organ_ok!(
+                    "stimulus" => "high_cpu",
+                    "cpu_percent" => load,
+                    "threshold_percent" => threshold,
+                    "triggered" => load >= threshold,
                 );
             }
             other => {
@@ -286,6 +421,32 @@ fn main() {
             "power_state" => {
                 let power = get_power_status();
                 organ_ok!("power" => power);
+            }
+            "network_state" => {
+                let online = check_network_online();
+                organ_ok!(
+                    "stimulus" => "network_state",
+                    "online" => online,
+                    "triggered" => !online,
+                );
+            }
+            "display_locked" => {
+                let locked = is_display_locked();
+                organ_ok!(
+                    "stimulus" => "display_locked",
+                    "locked" => locked,
+                    "triggered" => locked,
+                );
+            }
+            "high_cpu" => {
+                let load = get_cpu_load_percent();
+                let threshold: f64 = args.get_u64("threshold_percent").unwrap_or(85) as f64;
+                organ_ok!(
+                    "stimulus" => "high_cpu",
+                    "cpu_percent" => load,
+                    "threshold_percent" => threshold,
+                    "triggered" => load >= threshold,
+                );
             }
             other => {
                 organ_err!(format!("Unknown sense: {other}"));

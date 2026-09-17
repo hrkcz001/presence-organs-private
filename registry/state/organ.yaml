@@ -1,4 +1,4 @@
-﻿author: "presence"
+author: "presence"
 source:
   type: "git"
   url: "https://github.com/hrkcz001/presence-organs"
@@ -47,5 +47,10 @@ commands:
   - name: save
     tool: snapshot
     description: "Create state snapshot"
+stimuli:
+  - name: stale_goal
+    description: "Emitted when active goals in GOALS.md remain unupdated for > 12 hours"
+    cadence_secs: 900
+    action: "alert"
 permissions:
   timeout_seconds: 15

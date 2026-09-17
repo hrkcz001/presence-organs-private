@@ -47,6 +47,18 @@ stimuli:
     description: "Emitted when battery level drops below 15%"
     cadence_secs: 60
     action: "alert"
+  - name: network_state
+    description: "Emitted when network connectivity is lost or restored"
+    cadence_secs: 15
+    action: "switch_offline_mode"
+  - name: display_locked
+    description: "Emitted when workstation display is locked"
+    cadence_secs: 30
+    action: "modulate_pulse"
+  - name: high_cpu
+    description: "Emitted when host CPU utilization spikes above 85%"
+    cadence_secs: 30
+    action: "modulate_pulse"
 
 # 5. REFLEXES: Involuntary sub-millisecond protective actions consumed by Cord
 reflexes:

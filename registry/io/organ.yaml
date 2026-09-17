@@ -1,4 +1,4 @@
-﻿author: "presence"
+author: "presence"
 source:
   type: "git"
   url: "https://github.com/hrkcz001/presence-organs"
@@ -51,6 +51,15 @@ commands:
   - name: ls
     tool: list_files
     description: "List directory files"
+stimuli:
+  - name: disk_space_low
+    description: "Emitted when free disk space falls below threshold (5 GB)"
+    cadence_secs: 60
+    action: "alert"
+  - name: workspace_bloat
+    description: "Emitted when temporary workspace files exceed threshold (500 MB)"
+    cadence_secs: 300
+    action: "alert"
 permissions:
   filesystem_read: true
   filesystem_write: true

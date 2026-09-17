@@ -89,6 +89,8 @@ pub struct OrganStimulusDef {
     pub cadence_secs: Option<u64>,
     #[serde(default)]
     pub action: Option<String>,
+    #[serde(default)]
+    pub target_agent: Option<String>,
 }
 
 /// Definition of an involuntary Reflex for Cord (sub-millisecond protective reflex arc).

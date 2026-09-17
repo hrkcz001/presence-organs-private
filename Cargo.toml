@@ -1,0 +1,7 @@
+﻿[workspace]
+members = [
+    "crates/presence-organ-sdk",
+    "crates/organs/winsense",
+    "crates/organs/vox",
+]
+resolver = "2"

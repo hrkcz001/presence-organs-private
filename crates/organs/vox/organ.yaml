@@ -1,0 +1,29 @@
+﻿name: vox
+version: "1.0.0"
+author: "presence"
+description: "Native pure-Rust voice sensory and audio capture organ"
+entrypoint: "target/release/organ-vox.exe"
+type: "cli"
+senses:
+  - name: hearing
+    description: "Raw PCM audio capture stream"
+tools:
+  - name: vox_listen
+    description: "Capture microphone audio stream"
+    parameters:
+      type: object
+      properties:
+        seconds:
+          type: integer
+          description: "Recording duration in seconds"
+          default: 3
+        file:
+          type: string
+          description: "Destination PCM file path"
+      required: []
+commands:
+  - name: listen
+    tool: vox_listen
+    description: "Capture microphone audio via Rust vox"
+permissions:
+  timeout_seconds: 30

@@ -1,0 +1,14 @@
+﻿name: my_organ
+version: "0.1.0"
+author: "your-name"
+description: "TypeScript organ description"
+entrypoint: "organ.ts"
+type: "typescript"
+tools:
+  - name: my_tool
+    description: "Custom organ action"
+    parameters:
+      type: object
+      properties:
+        input: { type: string, description: "Input parameter" }
+      required: []

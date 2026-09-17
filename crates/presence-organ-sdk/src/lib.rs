@@ -43,21 +43,68 @@ impl OrganResponse {
     }
 
     pub fn to_json_string(&self) -> String {
-        serde_json::to_string_pretty(self).unwrap_or_else(|_| "{}".to_string())
+        serde_json::to_string(self).unwrap_or_else(|_| "{\"status\":\"error\",\"error\":\"json serialization failed\"}".to_string())
     }
 
-    pub fn print_and_exit(self) -> ! {
-        let is_ok = self.status == "ok";
+    pub fn print_and_exit(&self) -> ! {
         println!("{}", self.to_json_string());
-        std::process::exit(if is_ok { 0 } else { 1 });
+        if self.status == "ok" {
+            std::process::exit(0);
+        } else {
+            std::process::exit(1);
+        }
     }
 }
 
-/// Parsed CLI input arguments for an organ invocation.
+/// Macro for quick successful organ return and exit.
+#[macro_export]
+macro_rules! organ_ok {
+    ($($key:expr => $val:expr),* $(,)?) => {{
+        let mut resp = $crate::OrganResponse::ok();
+        $(
+            resp = resp.with_field($key, serde_json::json!($val));
+        )*
+        resp.print_and_exit();
+    }};
+    () => {{
+        $crate::OrganResponse::ok().print_and_exit();
+    }};
+}
+
+/// Macro for quick organ error exit.
+#[macro_export]
+macro_rules! organ_err {
+    ($msg:expr) => {{
+        $crate::OrganResponse::error($msg).print_and_exit();
+    }};
+}
+
+/// Definition of a vegetative Stimulus for Stem (heartbeat and autonomous polling).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OrganStimulusDef {
+    pub name: String,
+    #[serde(default)]
+    pub description: Option<String>,
+    #[serde(default)]
+    pub cadence_secs: Option<u64>,
+    #[serde(default)]
+    pub action: Option<String>,
+}
+
+/// Definition of an involuntary Reflex for Cord (sub-millisecond protective reflex arc).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct OrganReflexDef {
+    pub on: String,
+    pub action: String,
+}
+
+/// Universal CLI Argument parser for Presence Organs.
 #[derive(Debug, Clone, Default)]
 pub struct OrganArgs {
     pub tool: Option<String>,
     pub sense: Option<String>,
+    pub stimulus: Option<String>,
+    pub reflex: Option<String>,
     pub action: Option<String>,
     pub params: HashMap<String, String>,
 }
@@ -99,6 +146,8 @@ impl OrganArgs {
         match key {
             "tool" => self.tool = Some(val.to_string()),
             "sense" => self.sense = Some(val.to_string()),
+            "stimulus" => self.stimulus = Some(val.to_string()),
+            "reflex" => self.reflex = Some(val.to_string()),
             "action" => self.action = Some(val.to_string()),
             _ => {
                 self.params.insert(key.to_string(), val.to_string());
@@ -114,33 +163,13 @@ impl OrganArgs {
         self.params.get(key).map(|s| s.as_str()).unwrap_or(default)
     }
 
-    pub fn op(&self) -> String {
-        self.tool
-            .clone()
-            .or_else(|| self.sense.clone())
-            .or_else(|| self.action.clone())
-            .unwrap_or_default()
-            .to_lowercase()
+    pub fn get_u64(&self, key: &str) -> Option<u64> {
+        self.params.get(key).and_then(|v| v.parse::<u64>().ok())
     }
-}
 
-/// Helper macro for returning structured output from native organs.
-#[macro_export]
-macro_rules! organ_ok {
-    ($($key:expr => $val:expr),* $(,)?) => {{
-        let mut res = $crate::OrganResponse::ok();
-        $(
-            res = res.with_field($key, serde_json::json!($val));
-        )*
-        res
-    }};
-}
-
-#[macro_export]
-macro_rules! organ_err {
-    ($msg:expr) => {
-        $crate::OrganResponse::error($msg)
-    };
+    pub fn get_bool(&self, key: &str) -> bool {
+        self.params.get(key).map(|v| v == "true" || v == "1").unwrap_or(false)
+    }
 }
 
 #[cfg(test)]
@@ -148,30 +177,41 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_args_parsing() {
+    fn test_organ_args_parsing() {
         let args = vec![
-            "--tool", "inspect",
-            "--action=overview",
-            "--window", "chrome.exe",
-            "--verbose"
+            "--tool", "vox_listen",
+            "--seconds", "5",
+            "--format=wav",
+            "--verbose",
         ];
         let parsed = OrganArgs::from_args(args);
-        assert_eq!(parsed.tool.as_deref(), Some("inspect"));
-        assert_eq!(parsed.action.as_deref(), Some("overview"));
-        assert_eq!(parsed.get("window"), Some("chrome.exe"));
-        assert_eq!(parsed.get("verbose"), Some("true"));
-        assert_eq!(parsed.op(), "inspect");
+        assert_eq!(parsed.tool.as_deref(), Some("vox_listen"));
+        assert_eq!(parsed.get("seconds"), Some("5"));
+        assert_eq!(parsed.get_u64("seconds"), Some(5));
+        assert_eq!(parsed.get("format"), Some("wav"));
+        assert!(parsed.get_bool("verbose"));
     }
 
     #[test]
-    fn test_response_serialization() {
-        let res = organ_ok!(
-            "cpu" => 12.5,
-            "running" => true,
-            "tasks" => vec!["scan", "listen"]
-        );
-        let json = res.to_json_string();
-        assert!(json.contains("\"status\": \"ok\""));
-        assert!(json.contains("\"cpu\": 12.5"));
+    fn test_stimulus_and_reflex_args() {
+        let args = vec![
+            "--stimulus", "user_idle",
+            "--cadence", "30",
+            "--reflex", "lower_priority",
+        ];
+        let parsed = OrganArgs::from_args(args);
+        assert_eq!(parsed.stimulus.as_deref(), Some("user_idle"));
+        assert_eq!(parsed.reflex.as_deref(), Some("lower_priority"));
+        assert_eq!(parsed.get_u64("cadence"), Some(30));
+    }
+
+    #[test]
+    fn test_organ_response_serialization() {
+        let resp = OrganResponse::ok()
+            .with_field("transcription", "hello world")
+            .with_field("duration", 2.5);
+        let json = resp.to_json_string();
+        assert!(json.contains("\"status\":\"ok\""));
+        assert!(json.contains("\"transcription\":\"hello world\""));
     }
 }

@@ -1,11 +1,12 @@
-﻿[package]
+[package]
 name = "presence-organ-sdk"
-version = "0.1.0"
+version = "0.3.0"
 edition = "2021"
 description = "Universal Rust SDK for Presence sensory and action organs"
-license = "MIT"
-authors = ["Presence Contributors"]
+license = "Apache-2.0"
+authors = ["hrkcz001"]
 
 [dependencies]
+semver = "1.0"
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"

@@ -4,7 +4,7 @@ source:
   url: "https://github.com/hrkcz001/presence-organs"
   path: "organs/state"
 name: state
-version: "1.0.0"
+version: "0.3.0"
 description: "Presence cognitive state preservation, session pause, and hibernation"
 instructions: "Snapshot and restore agent card state; pause sessions safely into rest mode."
 entrypoint: "state.ts"
@@ -55,3 +55,6 @@ stimuli:
     target_agent: "arche"
 permissions:
   timeout_seconds: 15
+compatibility:
+  presence: "^0.3.0"
+  api_version: 1

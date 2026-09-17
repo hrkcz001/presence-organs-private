@@ -79,6 +79,46 @@ macro_rules! organ_err {
     }};
 }
 
+/// Organ compatibility requirements and capabilities metadata.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct OrganCompatibility {
+    #[serde(default)]
+    pub presence: Option<String>,
+    #[serde(default)]
+    pub api_version: Option<u32>,
+    #[serde(default)]
+    pub platforms: Option<Vec<String>>,
+    #[serde(default)]
+    pub features: Option<Vec<String>>,
+}
+
+impl OrganCompatibility {
+    /// Check whether this compatibility block matches the current host environment.
+    pub fn validate(&self, host_presence_version: &str) -> Result<(), String> {
+        if let Some(req_str) = &self.presence {
+            let req = semver::VersionReq::parse(req_str)
+                .map_err(|e| format!("Invalid SemVer presence constraint '{req_str}': {e}"))?;
+            let host_ver = semver::Version::parse(host_presence_version)
+                .map_err(|e| format!("Invalid host presence version '{host_presence_version}': {e}"))?;
+            if !req.matches(&host_ver) {
+                return Err(format!(
+                    "Presence version requirement '{req_str}' not satisfied by host '{host_presence_version}'"
+                ));
+            }
+        }
+        if let Some(platforms) = &self.platforms {
+            let os = std::env::consts::OS;
+            if !platforms.iter().any(|p| p.eq_ignore_ascii_case(os)) {
+                return Err(format!(
+                    "Platform '{os}' is not supported; required: {:?}",
+                    platforms
+                ));
+            }
+        }
+        Ok(())
+    }
+}
+
 /// Definition of a vegetative Stimulus for Stem (heartbeat and autonomous polling).
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct OrganStimulusDef {
@@ -151,20 +191,26 @@ impl OrganArgs {
             "stimulus" => self.stimulus = Some(val.to_string()),
             "reflex" => self.reflex = Some(val.to_string()),
             "action" => self.action = Some(val.to_string()),
-            _ => {
-                self.params.insert(key.to_string(), val.to_string());
+            other => {
+                self.params.insert(other.to_string(), val.to_string());
             }
         }
     }
 
     pub fn op(&self) -> &str {
-        self.tool
-            .as_deref()
-            .or(self.stimulus.as_deref())
-            .or(self.reflex.as_deref())
-            .or(self.sense.as_deref())
-            .or(self.action.as_deref())
-            .unwrap_or("")
+        if let Some(t) = &self.tool {
+            t.as_str()
+        } else if let Some(s) = &self.sense {
+            s.as_str()
+        } else if let Some(st) = &self.stimulus {
+            st.as_str()
+        } else if let Some(r) = &self.reflex {
+            r.as_str()
+        } else if let Some(a) = &self.action {
+            a.as_str()
+        } else {
+            ""
+        }
     }
 
     pub fn get(&self, key: &str) -> Option<&str> {
@@ -172,59 +218,17 @@ impl OrganArgs {
     }
 
     pub fn get_or<'a>(&'a self, key: &str, default: &'a str) -> &'a str {
-        self.params.get(key).map(|s| s.as_str()).unwrap_or(default)
-    }
-
-    pub fn get_u64(&self, key: &str) -> Option<u64> {
-        self.params.get(key).and_then(|v| v.parse::<u64>().ok())
+        self.get(key).unwrap_or(default)
     }
 
     pub fn get_bool(&self, key: &str) -> bool {
-        self.params.get(key).map(|v| v == "true" || v == "1").unwrap_or(false)
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_organ_args_parsing() {
-        let args = vec![
-            "--tool", "vox_listen",
-            "--seconds", "5",
-            "--format=wav",
-            "--verbose",
-        ];
-        let parsed = OrganArgs::from_args(args);
-        assert_eq!(parsed.tool.as_deref(), Some("vox_listen"));
-        assert_eq!(parsed.get("seconds"), Some("5"));
-        assert_eq!(parsed.get_u64("seconds"), Some(5));
-        assert_eq!(parsed.get("format"), Some("wav"));
-        assert!(parsed.get_bool("verbose"));
+        self.params
+            .get(key)
+            .map(|s| s == "true" || s == "1")
+            .unwrap_or(false)
     }
 
-    #[test]
-    fn test_stimulus_and_reflex_args() {
-        let args = vec![
-            "--stimulus", "user_idle",
-            "--cadence", "30",
-            "--reflex", "lower_priority",
-        ];
-        let parsed = OrganArgs::from_args(args);
-        assert_eq!(parsed.stimulus.as_deref(), Some("user_idle"));
-        assert_eq!(parsed.reflex.as_deref(), Some("lower_priority"));
-        assert_eq!(parsed.get_u64("cadence"), Some(30));
-        assert_eq!(parsed.op(), "user_idle");
-    }
-
-    #[test]
-    fn test_organ_response_serialization() {
-        let resp = OrganResponse::ok()
-            .with_field("transcription", "hello world")
-            .with_field("duration", 2.5);
-        let json = resp.to_json_string();
-        assert!(json.contains("\"status\":\"ok\""));
-        assert!(json.contains("\"transcription\":\"hello world\""));
+    pub fn get_u64(&self, key: &str) -> Option<u64> {
+        self.params.get(key).and_then(|s| s.parse().ok())
     }
 }

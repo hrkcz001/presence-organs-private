@@ -1,11 +1,24 @@
-﻿[package]
+[package]
 name = "organ-winsense"
-version = "1.0.0"
+version = "0.3.0"
 edition = "2021"
 description = "Native pure-Rust Windows sensory organ for Presence"
-license = "MIT"
+authors = ["hrkcz001"]
+license = "Apache-2.0"
 
 [dependencies]
-presence-organ-sdk = { path = "../../presence-organ-sdk", version = "0.1.0" }
+presence-organ-sdk = { path = "../../presence-organ-sdk", version = "0.3.0" }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.58", features = [
+    "Win32_Foundation",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_System_SystemInformation",
+    "Win32_System_Power",
+    "Win32_System_ProcessStatus",
+    "Win32_System_Threading",
+    "Win32_Media_Audio",
+    "Win32_NetworkManagement_NetworkDiagnosticsFramework"
+] }

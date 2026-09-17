@@ -1,5 +1,5 @@
 name: winsense
-version: "1.0.0"
+version: "0.3.0"
 author: "presence"
 description: "Native pure-Rust Windows environment sensory organ"
 source:
@@ -69,3 +69,8 @@ reflexes:
 
 permissions:
   timeout_seconds: 10
+compatibility:
+  presence: "^0.3.0"
+  api_version: 1
+  platforms:
+    - windows

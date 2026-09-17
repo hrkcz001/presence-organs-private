@@ -1,4 +1,4 @@
-﻿name: winsense
+name: winsense
 version: "1.0.0"
 author: "presence"
 description: "Native pure-Rust Windows environment sensory organ"
@@ -8,13 +8,8 @@ source:
   path: "crates/organs/winsense"
 entrypoint: "organ-winsense.exe"
 type: "cli"
-senses:
-  - name: active_window
-    description: "Foreground window title and process ID"
-  - name: idle_time
-    description: "User idle duration in seconds"
-  - name: power_state
-    description: "Battery and AC power state"
+
+# 1. TOOLS: Conscious actions executed by Cortex via LLM tool-calling
 tools:
   - name: inspect_window
     description: "Query current active window or open applications"
@@ -23,9 +18,42 @@ tools:
       properties:
         action: { type: string, enum: ["foreground", "windows", "overview", "idle", "power", "audio"] }
       required: []
+
+# 2. SENSES: Perceptual inputs sampled during prompt-building
+senses:
+  - name: active_window
+    description: "Foreground window title and process ID"
+  - name: idle_time
+    description: "User idle duration in seconds"
+  - name: power_state
+    description: "Battery and AC power state"
+
+# 3. COMMANDS: Interactive slash commands routed from ACP client UI
 commands:
   - name: win
     tool: inspect_window
     description: "Inspect active window and environment"
+  - name: windows
+    tool: inspect_window
+    description: "List currently opened application windows"
+
+# 4. STIMULI: Autonomous vegetative triggers consumed by Stem (Heartbeat loop)
+stimuli:
+  - name: user_idle
+    description: "Emitted when owner is inactive for > 15 minutes"
+    cadence_secs: 30
+    action: "modulate_pulse"
+  - name: battery_low
+    description: "Emitted when battery level drops below 15%"
+    cadence_secs: 60
+    action: "alert"
+
+# 5. REFLEXES: Involuntary sub-millisecond protective actions consumed by Cord
+reflexes:
+  - on: "owner_active"
+    action: "lower_cpu_priority"
+  - on: "process_memory_spike"
+    action: "trip_job_limit"
+
 permissions:
   timeout_seconds: 10

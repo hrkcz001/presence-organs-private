@@ -1,4 +1,4 @@
-﻿//! Native pure-Rust voice and audio sensory organ for Presence.
+//! Native pure-Rust voice and audio sensory organ for Presence.
 use presence_organ_sdk::{organ_err, organ_ok, OrganArgs};
 use std::fs::File;
 use std::io::Write;
@@ -28,7 +28,7 @@ fn main() {
 
         match File::create(&dest).and_then(|mut f| f.write_all(&buffer)) {
             Ok(_) => {
-                let resp = organ_ok!(
+                organ_ok!(
                     "action" => "vox_listen",
                     "seconds" => seconds,
                     "file" => dest.display().to_string(),
@@ -37,19 +37,16 @@ fn main() {
                     "channels" => 1,
                     "format" => "pcm_s16le"
                 );
-                resp.print_and_exit();
             }
             Err(e) => {
-                let resp = organ_err!(format!("Failed to write capture file: {e}"));
-                resp.print_and_exit();
+                organ_err!(format!("Failed to write capture file: {e}"));
             }
         }
     } else {
-        let resp = organ_ok!(
+        organ_ok!(
             "status" => "ready",
             "organ" => "vox",
             "capabilities" => vec!["vox_listen", "hearing"]
         );
-        resp.print_and_exit();
     }
 }

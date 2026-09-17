@@ -1,5 +1,5 @@
-﻿//! Native pure-Rust Windows sensory organ for Presence.
-use presence_organ_sdk::{organ_ok, OrganArgs};
+//! Native pure-Rust Windows sensory organ for Presence.
+use presence_organ_sdk::{organ_err, organ_ok, OrganArgs};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
@@ -220,28 +220,105 @@ pub fn get_audio_devices() -> Vec<String> {
 
 fn main() {
     let args = OrganArgs::from_env();
-    let action = args.get("action").or_else(|| args.action.as_deref()).unwrap_or("overview");
 
-    let resp = match action {
+    // 1. Autonomous Stimuli (Vegetative signals for Stem)
+    if let Some(stimulus) = args.stimulus.as_deref() {
+        match stimulus {
+            "user_idle" | "user_idle_threshold" => {
+                let idle_secs = get_user_idle_seconds();
+                let threshold: f64 = args.get_u64("threshold_secs").unwrap_or(900) as f64;
+                let triggered = idle_secs >= threshold;
+                organ_ok!(
+                    "status" => "ok",
+                    "stimulus" => stimulus,
+                    "idle_seconds" => idle_secs,
+                    "threshold_secs" => threshold,
+                    "triggered" => triggered,
+                );
+            }
+            "battery_low" => {
+                let power = get_power_status();
+                let threshold: u8 = args.get_u64("threshold_percent").unwrap_or(15) as u8;
+                let triggered = power.power_source == "battery"
+                    && power.battery_percent.map(|p| p <= threshold).unwrap_or(false);
+                organ_ok!(
+                    "status" => "ok",
+                    "stimulus" => "battery_low",
+                    "power_source" => power.power_source,
+                    "battery_percent" => power.battery_percent,
+                    "threshold_percent" => threshold,
+                    "triggered" => triggered,
+                );
+            }
+            other => {
+                organ_err!(format!("Unknown stimulus: {other}"));
+            }
+        }
+    }
+
+    // 2. Involuntary Reflexes (Sub-millisecond arcs for Cord)
+    if let Some(reflex) = args.reflex.as_deref() {
+        match reflex {
+            "lower_cpu_priority" => {
+                organ_ok!(
+                    "status" => "ok",
+                    "reflex" => reflex,
+                    "action" => "priority_lowered"
+                );
+            }
+            other => {
+                organ_err!(format!("Unknown reflex: {other}"));
+            }
+        }
+    }
+
+    // 3. Senses (Perceptual inputs sampled during prompt-building)
+    if let Some(sense) = args.sense.as_deref() {
+        match sense {
+            "active_window" => {
+                let fg = get_foreground();
+                organ_ok!("foreground" => fg);
+            }
+            "idle_time" => {
+                let idle = get_user_idle_seconds();
+                organ_ok!("idle_seconds" => idle);
+            }
+            "power_state" => {
+                let power = get_power_status();
+                organ_ok!("power" => power);
+            }
+            other => {
+                organ_err!(format!("Unknown sense: {other}"));
+            }
+        }
+    }
+
+    // 4. Tools & Commands
+    let action = args.get("action")
+        .or_else(|| args.tool.as_deref())
+        .or_else(|| args.action.as_deref())
+        .unwrap_or("overview");
+
+    match action {
         "foreground" => {
             let fg = get_foreground();
-            organ_ok!("foreground" => fg)
+            organ_ok!("foreground" => fg);
         }
         "windows" => {
             let wins = get_open_windows();
-            organ_ok!("windows" => wins)
+            organ_ok!("windows" => wins);
         }
         "idle" => {
             let idle = get_user_idle_seconds();
-            organ_ok!("idle_seconds" => idle)
+            organ_ok!("idle_seconds" => idle);
         }
         "power" => {
             let power = get_power_status();
-            organ_ok!("power" => power)
+            organ_ok!("power" => power);
         }
         "audio" => {
             let devs = get_audio_devices();
-            organ_ok!("audio_devices" => devs)
+            organ_ok!("audio_devices" => devs);
         }
         "overview" | _ => {
             let fg = get_foreground();
@@ -255,9 +332,7 @@ fn main() {
                 "power" => power,
                 "open_windows" => wins,
                 "audio_devices" => audio,
-            )
+            );
         }
-    };
-
-    resp.print_and_exit();
+    }
 }

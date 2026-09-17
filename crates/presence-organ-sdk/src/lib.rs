@@ -1,4 +1,4 @@
-﻿use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
@@ -155,6 +155,16 @@ impl OrganArgs {
         }
     }
 
+    pub fn op(&self) -> &str {
+        self.tool
+            .as_deref()
+            .or(self.stimulus.as_deref())
+            .or(self.reflex.as_deref())
+            .or(self.sense.as_deref())
+            .or(self.action.as_deref())
+            .unwrap_or("")
+    }
+
     pub fn get(&self, key: &str) -> Option<&str> {
         self.params.get(key).map(|s| s.as_str())
     }
@@ -203,6 +213,7 @@ mod tests {
         assert_eq!(parsed.stimulus.as_deref(), Some("user_idle"));
         assert_eq!(parsed.reflex.as_deref(), Some("lower_priority"));
         assert_eq!(parsed.get_u64("cadence"), Some(30));
+        assert_eq!(parsed.op(), "user_idle");
     }
 
     #[test]

@@ -197,6 +197,16 @@ impl OrganArgs {
         }
     }
 
+    pub fn has(&self, key: &str) -> bool {
+        match key {
+            "tool" => self.tool.is_some(),
+            "sense" => self.sense.is_some(),
+            "stimulus" => self.stimulus.is_some(),
+            "reflex" => self.reflex.is_some(),
+            "action" => self.action.is_some(),
+            other => self.params.contains_key(other),
+        }
+    }
     pub fn op(&self) -> &str {
         if let Some(t) = &self.tool {
             t.as_str()

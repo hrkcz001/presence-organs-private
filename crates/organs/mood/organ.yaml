@@ -1,0 +1,53 @@
+name: mood
+version: 0.3.0
+manual: MANUAL.md
+type: cli
+description: "Mechanical affect, cognitive strain, and posture organ for Presence (Felt, not narrated)"
+author: hrkcz001
+license: Apache-2.0
+
+entrypoint:
+  windows: "organ-mood.exe"
+  linux: "organ-mood"
+
+compatibility:
+  triad: ">=0.3.0"
+
+tools:
+  - name: mood_status
+    description: "Sample deterministic cognitive posture, friction metrics, and emotional weight"
+    parameters:
+      type: object
+      properties: {}
+
+  - name: mood_record_friction
+    description: "Log an operational friction event into the mechanical ledger"
+    parameters:
+      type: object
+      properties:
+        kind:
+          type: string
+          description: "Friction kind: llm_retry, tool_failed, forced_final, phase_strike, ritual_skip, rule_patch, failover"
+        detail:
+          type: string
+          description: "Brief factual summary of the friction event"
+      required:
+        - kind
+        - detail
+
+senses:
+  - name: current_mood
+    description: "Mechanical grounding block reporting current cognitive weight (light/steady/heavy) and posture (fresh/steady/restless/agitated)"
+    interval_seconds: 30
+
+stimuli:
+  - name: cognitive_strain
+    description: "Emitted when accumulated friction and strikes exceed resilience thresholds, signaling Stem to trigger Arbiter/Arche intervention"
+    cadence_secs: 60
+    action: "alert"
+    target_agent: "arbiter"
+
+slash_commands:
+  - name: mood
+    description: "Display current cognitive weight, posture, and friction counts"
+    tool: mood_status

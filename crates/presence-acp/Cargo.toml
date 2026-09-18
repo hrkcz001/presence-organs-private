@@ -9,6 +9,7 @@ description = "Universal Agent Client Protocol (ACP) adapter with Zed profile an
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
+serde_yaml = "0.9"
 uuid = { version = "1.0", features = ["v4"] }
 
 [dev-dependencies]

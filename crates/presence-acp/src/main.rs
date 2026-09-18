@@ -128,6 +128,72 @@ pub struct AcpGateway<W: Write> {
     pub workspace_root: PathBuf,
 }
 
+fn discover_organ_commands() -> Vec<Value> {
+    let mut cmds = vec![
+        json!({"name": "agent", "description": "Switch active persona (/agent <name>)"}),
+        json!({"name": "agents", "description": "List available personas"}),
+        json!({"name": "journal", "description": "View quest journal and memory"}),
+        json!({"name": "pause", "description": "Pause active circle"}),
+        json!({"name": "continue", "description": "Resume paused circle"}),
+    ];
+
+    let search_roots = [
+        PathBuf::from("organs"),
+        PathBuf::from("crates/organs"),
+        PathBuf::from("registry"),
+        PathBuf::from("C:/Users/hrkcz001/Dev/presence-organs/crates/organs"),
+        PathBuf::from("C:/Users/hrkcz001/Dev/presence-organs/registry"),
+        PathBuf::from("C:/Users/hrkcz001/Dev/presence/organs"),
+    ];
+
+    for root in &search_roots {
+        if !root.is_dir() {
+            continue;
+        }
+        if let Ok(entries) = std::fs::read_dir(root) {
+            for entry in entries.flatten() {
+                let manifest_path = entry.path().join("organ.yaml");
+                if manifest_path.is_file() {
+                    if let Ok(txt) = std::fs::read_to_string(&manifest_path) {
+                        if let Ok(val) = serde_yaml::from_str::<Value>(&txt) {
+                            let organ_name = val.get("name").and_then(Value::as_str).unwrap_or("organ");
+                            let organ_desc = val.get("description").and_then(Value::as_str).unwrap_or("");
+                            
+                            let cmd_list = val.get("slash_commands").or_else(|| val.get("commands"));
+                            if let Some(arr) = cmd_list.and_then(Value::as_array) {
+                                for item in arr {
+                                    if let Some(s) = item.as_str() {
+                                        let name = s.trim_start_matches('/').to_lowercase();
+                                        if !name.is_empty() && !cmds.iter().any(|c| c.get("name").and_then(Value::as_str) == Some(&name)) {
+                                            cmds.push(json!({
+                                                "name": name,
+                                                "description": format!("Execute {organ_name} command"),
+                                            }));
+                                        }
+                                    } else if let Some(obj) = item.as_object() {
+                                        if let Some(name_val) = obj.get("name").and_then(Value::as_str) {
+                                            let name = name_val.trim_start_matches('/').to_lowercase();
+                                            let desc = obj.get("description").and_then(Value::as_str).unwrap_or(organ_desc);
+                                            if !name.is_empty() && !cmds.iter().any(|c| c.get("name").and_then(Value::as_str) == Some(&name)) {
+                                                cmds.push(json!({
+                                                    "name": name,
+                                                    "description": desc,
+                                                }));
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    cmds
+}
+
 impl<W: Write> AcpGateway<W> {
     pub fn new(sender: AcpSender<W>, profile: ClientProfile, force_profile: bool) -> Self {
         let workspace_root = std::env::var("PRESENCE_WORKSPACE")
@@ -208,13 +274,7 @@ impl<W: Write> AcpGateway<W> {
                 if self.profile == ClientProfile::Zed {
                     self.sender.send_session_update(&sid, json!({
                         "sessionUpdate": "available_commands_update",
-                        "availableCommands": [
-                            {"name": "agent", "description": "Switch active persona (/agent <name>)"},
-                            {"name": "agents", "description": "List available personas"},
-                            {"name": "journal", "description": "View quest journal and memory"},
-                            {"name": "pause", "description": "Pause active circle"},
-                            {"name": "continue", "description": "Resume paused circle"}
-                        ]
+                        "availableCommands": discover_organ_commands()
                     }));
                 }
             }

@@ -14,7 +14,7 @@ It prioritizes ultra-fast native tooling:
 - **Platforms**: Windows (x86_64), Linux (x86_64, aarch64)
 - **Runtime / Binary**: Native compiled binary (`organ-packager.exe`)
 - **Underlying Drivers**:
-  - Windows: `sfsu` or `scoop` on PATH.
+  - Windows: `scoop` on PATH. `sfsu` is an optional Scoop dependency (`scoop install sfsu`) providing sub-millisecond JSON search.
   - Linux: `nix` or `nix-env` on PATH.
 - **Permissions**:
   - File write access to `workspace/organs/` or user scoop directory.

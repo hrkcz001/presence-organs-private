@@ -99,3 +99,10 @@ slash_commands:
   - name: pkg
     description: Manage system packages and organs via sfsu/scoop/nix
     tool: packager_search
+dependencies:
+  system:
+    - binary: sfsu
+      scoop: sfsu
+      optional: true
+      disables_features:
+        - "fast_json_search"

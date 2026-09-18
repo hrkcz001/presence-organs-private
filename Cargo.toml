@@ -15,5 +15,6 @@ members = [
     "crates/organs/mood",
     "crates/organs/social",
     "crates/organs/ask",
+    "crates/organs/io",
 ]
 resolver = "2"

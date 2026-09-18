@@ -1506,6 +1506,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "organ-issues"
+version = "0.3.0"
+dependencies = [
+ "presence-organ-sdk",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "uuid",
+]
+
+[[package]]
 name = "organ-manual"
 version = "0.3.0"
 dependencies = [

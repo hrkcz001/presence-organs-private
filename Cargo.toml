@@ -8,5 +8,6 @@ members = [
     "crates/organs/packager",
     "crates/organs/manual",
     "crates/presence-acp",
+    "crates/organs/issues",
 ]
 resolver = "2"

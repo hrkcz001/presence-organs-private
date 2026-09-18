@@ -4,5 +4,6 @@ members = [
     "crates/organs/winsense",
     "crates/organs/vox",
     "crates/organs/channel",
+    "crates/presence-dashboard",
 ]
 resolver = "2"

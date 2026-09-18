@@ -1,4 +1,4 @@
-﻿author: "presence"
+author: "presence"
 source:
   type: "git"
   url: "https://github.com/hrkcz001/presence-organs"
@@ -10,6 +10,8 @@ description: "Presence cognitive state preservation, session pause, and hibernat
 instructions: "Snapshot and restore agent card state; pause sessions safely into rest mode."
 entrypoint: "state.ts"
 type: "typescript"
+dependencies:
+  runtime: bun
 senses:
   - name: sleep_state
     description: "Current hibernation posture and downtime indicators"

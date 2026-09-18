@@ -1,4 +1,4 @@
-﻿author: "presence"
+author: "presence"
 source:
   type: "git"
   url: "https://github.com/hrkcz001/presence-organs"
@@ -10,6 +10,8 @@ description: "Goal formulation, active intent, roadmap execution, and session jo
 instructions: "Maintain active intent via plan_step (bound to active agent card) and record major cognitive milestones via journal_append."
 entrypoint: "plan.ts"
 type: "typescript"
+dependencies:
+  runtime: bun
 senses:
   - name: standing_intent
     description: "Active plan step and current milestone directly injected into Observation"

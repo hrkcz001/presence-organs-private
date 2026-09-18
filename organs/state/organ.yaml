@@ -1,10 +1,12 @@
-﻿name: state
+name: state
 version: "1.0.0"
 manual: MANUAL.md
 description: "Presence cognitive state preservation, session pause, and hibernation"
 instructions: "Snapshot and restore agent card state; pause sessions safely into rest mode."
 entrypoint: "state.ts"
 type: "typescript"
+dependencies:
+  runtime: bun
 senses:
   - name: sleep_state
     description: "Current hibernation posture and downtime indicators"

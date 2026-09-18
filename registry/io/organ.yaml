@@ -1,4 +1,4 @@
-﻿author: "presence"
+author: "presence"
 source:
   type: "git"
   url: "https://github.com/hrkcz001/presence-organs"
@@ -10,6 +10,8 @@ description: "Physical input/output and filesystem manipulation organ"
 instructions: "Filesystem interaction. Use read_file, write_file, and list_files for file I/O operations."
 entrypoint: "io.ts"
 type: "typescript"
+dependencies:
+  runtime: bun
 senses:
   - name: fs_changes
     description: "Recent modifications in workspace files"

@@ -1,4 +1,4 @@
-﻿author: "presence"
+author: "presence"
 source:
   type: "git"
   url: "https://github.com/hrkcz001/presence-organs"
@@ -10,6 +10,8 @@ description: "System desktop notifications on Windows (WinRT) and Linux (notify-
 instructions: "Desktop alert interface. Use toast to notify the user of major asynchronous events."
 entrypoint: "notify.ts"
 type: "typescript"
+dependencies:
+  runtime: bun
 tools:
   - name: toast
     description: "Display a desktop notification toast"

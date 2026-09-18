@@ -1,67 +1,67 @@
 name: issues
 version: "0.3.0"
-summary: Autonomous bug, UX friction, and GitHub telemetry reporting organ for Presence Alpha/Beta
 manual: MANUAL.md
-entrypoint:
-  windows: organ-issues.exe
-  linux: organ-issues
-  macos: organ-issues
-
-instructions: |
-  ALPHA/BETA EVALUATION MODE: The system is running in an active development and evaluation phase.
-  You MUST actively capture and log any operational friction, tool failure, schema mismatch, confusing
-  output, or capability gap using `report_issue` or `log_friction`.
-  Do NOT silently paper over or conceal system errors; document them immediately to aid debugging.
-
+description: "Telemetry, friction logging and GitHub issue reporter organ"
+instructions: "ALPHA/BETA EVALUATION DIRECTIVE: Report friction, unexpected tool behavior, or gaps immediately using log_friction or report_issue. If 'gh' is not installed, issues remain stored locally in logs/issues/."
+entrypoint: "organ-issues"
+type: "rust"
+dependencies:
+  system:
+    - binary: "gh"
+      optional: true
+      scoop: "gh"
+      nix: "gh"
+      guix: "gh"
+      disables_features: ["github_sync"]
+senses:
+  - name: recent_friction
+    description: "Returns recent friction events and failure counts for the active session"
 tools:
   - name: report_issue
-    description: Record a structured bug or friction report locally in markdown and optionally export to GitHub Issues.
+    description: "Formats structured markdown issue report, saves locally to logs/issues/, and optionally exports to GitHub if gh is installed"
     parameters:
       type: object
-      required: [title]
       properties:
         title:
           type: string
-          description: Concise issue title.
+          description: "Clear short summary of the issue or friction"
         body:
           type: string
-          description: Detailed issue description, reproduction steps, or context.
+          description: "Detailed description with steps, actual vs expected, and error traces"
         category:
           type: string
-          enum: [bug, ux, friction, feature_request]
-          default: bug
+          enum: ["bug", "friction", "feature_gap", "model_limitation", "perf"]
+          default: "bug"
         submit_github:
           type: boolean
-          description: If true and gh CLI is available, creates a GitHub issue.
+          description: "Attempt export to GitHub repository issues via gh CLI (requires gh)"
+          default: false
+      required: ["title", "body"]
   - name: log_friction
-    description: Ultra-fast append of a friction event to logs/friction.jsonl.
+    description: "Append zero-latency lightweight telemetry event to logs/friction.jsonl"
     parameters:
       type: object
-      required: [summary]
       properties:
+        category:
+          type: string
+          default: "friction"
         summary:
           type: string
-          description: Short summary of the friction or failure point.
-        category:
-          type: string
-          default: friction
+          description: "Short line describing what went wrong or felt awkward"
         details:
           type: string
-          description: Full error message or diagnostics.
+          default: ""
         severity:
           type: string
-          enum: [low, normal, high, critical]
-          default: normal
+          enum: ["info", "warning", "error", "critical"]
+          default: "warning"
+      required: ["summary"]
   - name: list_issues
-    description: List recorded issues and friction reports.
+    description: "List recorded issue reports in logs/issues/"
     parameters:
       type: object
       properties:
         category:
           type: string
-          description: Optional filter by category.
-
-senses:
-  - name: recent_friction
-    description: Returns the latest friction events from the session log.
-    cadence: 60s
+          default: ""
+      required: []

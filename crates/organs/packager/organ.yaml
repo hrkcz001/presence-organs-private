@@ -79,6 +79,17 @@ tools:
           type: string
           description: Optional specific package to update
 
+  - name: packager_resolve
+    description: Automatically detect and resolve all missing system dependencies for a specified organ using the active system package manager (Scoop/Nix/Guix)
+    parameters:
+      type: object
+      properties:
+        organ:
+          type: string
+          description: Organ name to inspect and resolve missing dependencies for
+      required:
+        - organ
+
 senses:
   - name: outdated_packages
     description: Senses outdated packages or available updates

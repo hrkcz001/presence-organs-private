@@ -1,4 +1,4 @@
-﻿//! Manual discovery, targeted reading, and documentation search organ for Presence Triad.
+//! Manual discovery, targeted reading, and documentation search organ for Presence Triad.
 use presence_organ_sdk::{OrganArgs, OrganCompatibility, OrganResponse};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
@@ -15,6 +15,10 @@ pub struct OrganManualEntry {
     pub manual_found: bool,
     pub path: Option<String>,
     pub topics: Vec<String>,
+    #[serde(default)]
+    pub health: String,
+    #[serde(default)]
+    pub missing_dependencies: Vec<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -151,6 +155,8 @@ pub fn discover_organs(root: &Path) -> BTreeMap<String, OrganManualEntry> {
 
             let mut version = "0.3.0".to_string();
             let mut description = String::new();
+            let mut health = "ready".to_string();
+            let mut missing_dependencies = Vec::new();
 
             if yaml_path.is_file() {
                 if let Ok(content) = std::fs::read_to_string(&yaml_path) {
@@ -160,6 +166,31 @@ pub fn discover_organs(root: &Path) -> BTreeMap<String, OrganManualEntry> {
                         }
                         if let Some(d) = val.get("description").and_then(Value::as_str) {
                             description = d.to_string();
+                        }
+                        if let Some(deps_val) = val.get("dependencies") {
+                            if let Ok(deps) = serde_json::from_value::<presence_organ_sdk::OrganDependencies>(deps_val.clone()) {
+                                let report = deps.evaluate(&[]);
+                                if !report.is_runnable {
+                                    health = "blocked".to_string();
+                                    if let Some(rt) = report.missing_runtime {
+                                        missing_dependencies.push(format!("runtime: {rt}"));
+                                    }
+                                    for o in report.missing_required_organs {
+                                        missing_dependencies.push(format!("organ: {o}"));
+                                    }
+                                    for s in report.missing_required_system {
+                                        missing_dependencies.push(format!("system: {} ({})", s.binary, s.install_hint()));
+                                    }
+                                } else if !report.missing_optional_system.is_empty() || !report.missing_optional_organs.is_empty() {
+                                    health = "degraded".to_string();
+                                    for o in report.missing_optional_organs {
+                                        missing_dependencies.push(format!("optional organ: {o}"));
+                                    }
+                                    for s in report.missing_optional_system {
+                                        missing_dependencies.push(format!("optional system: {} ({})", s.binary, s.install_hint()));
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -187,6 +218,8 @@ pub fn discover_organs(root: &Path) -> BTreeMap<String, OrganManualEntry> {
                         manual_found,
                         path: resolved_manual_path,
                         topics,
+                        health,
+                        missing_dependencies,
                     },
                 );
             }
@@ -225,11 +258,27 @@ pub fn tool_manual_read(root: &Path, organ_name: &str, topic: Option<&str>) -> O
         None => return OrganResponse::error(format!("Organ '{organ_name}' has no MANUAL.md")),
     };
 
-    let content = match std::fs::read_to_string(path_str) {
+    let raw_content = match std::fs::read_to_string(path_str) {
         Ok(c) => c,
         Err(e) => return OrganResponse::error(format!("Failed to read manual file '{path_str}': {e}")),
     };
 
+    let banner = if entry.health != "ready" && !entry.missing_dependencies.is_empty() {
+        let alert_type = if entry.health == "blocked" { "CAUTION" } else { "WARNING" };
+        let mut missing_lines = Vec::new();
+        for m in &entry.missing_dependencies {
+            missing_lines.push(format!("- {m}"));
+        }
+        format!(
+            "> [!{alert_type}]\n> **Organ Dependency Notice**: Organ status is `{}` on this host.\n> Missing dependencies:\n{}\n\n",
+            entry.health,
+            missing_lines.join("\n")
+        )
+    } else {
+        String::new()
+    };
+
+    let content = format!("{banner}{raw_content}");
     let mut resp = OrganResponse::ok();
     resp.data.insert("organ".to_string(), json!(organ_name));
     resp.data.insert("version".to_string(), json!(entry.version));
@@ -252,7 +301,12 @@ pub fn tool_manual_read(root: &Path, organ_name: &str, topic: Option<&str>) -> O
 
         if let Some((heading, body)) = matched {
             resp.data.insert("topic".to_string(), json!(heading));
-            resp.data.insert("content".to_string(), json!(body));
+            let final_body = if !banner.is_empty() {
+                format!("{banner}{body}")
+            } else {
+                body.to_string()
+            };
+            resp.data.insert("content".to_string(), json!(final_body));
         } else {
             let available_topics: Vec<String> = sections.into_iter().map(|(h, _)| h).collect();
             return OrganResponse::error(format!(

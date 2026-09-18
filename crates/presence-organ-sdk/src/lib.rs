@@ -242,3 +242,220 @@ impl OrganArgs {
         self.params.get(key).and_then(|s| s.parse().ok())
     }
 }
+
+/// Check if a binary is available on the system PATH or in Scoop shims.
+pub fn check_binary_available(binary: &str) -> bool {
+    #[cfg(windows)]
+    {
+        let cmd = if binary.ends_with(".exe") {
+            binary.to_string()
+        } else {
+            format!("{}.exe", binary)
+        };
+        if let Ok(paths) = std::env::var("PATH") {
+            for p in std::env::split_paths(&paths) {
+                if p.join(&cmd).is_file() || p.join(binary).is_file() {
+                    return true;
+                }
+            }
+        }
+        if let Ok(userprofile) = std::env::var("USERPROFILE") {
+            let shim = std::path::PathBuf::from(userprofile)
+                .join("scoop")
+                .join("shims")
+                .join(&cmd);
+            if shim.is_file() {
+                return true;
+            }
+        }
+        false
+    }
+    #[cfg(not(windows))]
+    {
+        if let Ok(paths) = std::env::var("PATH") {
+            for p in std::env::split_paths(&paths) {
+                let candidate = p.join(binary);
+                if candidate.is_file() {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+}
+
+/// Dependency on another Presence organ.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct OrganDep {
+    pub name: String,
+    #[serde(default)]
+    pub optional: bool,
+}
+
+/// Dependency on a host system binary (managed via Scoop or Nix/Guix).
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct SystemDep {
+    pub binary: String,
+    #[serde(default)]
+    pub optional: bool,
+    #[serde(default)]
+    pub scoop: Option<String>,
+    #[serde(default)]
+    pub nix: Option<String>,
+    #[serde(default)]
+    pub guix: Option<String>,
+    #[serde(default)]
+    pub disables_tools: Vec<String>,
+    #[serde(default)]
+    pub disables_features: Vec<String>,
+}
+
+impl SystemDep {
+    pub fn target_package(&self) -> Option<&str> {
+        #[cfg(windows)]
+        {
+            self.scoop.as_deref().or(Some(&self.binary))
+        }
+        #[cfg(not(windows))]
+        {
+            if std::env::var("GUIX_ENVIRONMENT").is_ok() || check_binary_available("guix") {
+                self.guix.as_deref().or(self.nix.as_deref()).or(Some(&self.binary))
+            } else {
+                self.nix.as_deref().or(self.guix.as_deref()).or(Some(&self.binary))
+            }
+        }
+    }
+
+    pub fn install_hint(&self) -> String {
+        let pkg = self.target_package().unwrap_or(&self.binary);
+        #[cfg(windows)]
+        {
+            format!("packager_install(package: \"{pkg}\") [host fallback: scoop install {pkg}]")
+        }
+        #[cfg(not(windows))]
+        {
+            if std::env::var("GUIX_ENVIRONMENT").is_ok() || check_binary_available("guix") {
+                format!("packager_install(package: \"{pkg}\") [host fallback: guix install {pkg}]")
+            } else {
+                format!("packager_install(package: \"{pkg}\") [host fallback: nix-env -iA nixpkgs.{pkg}]")
+            }
+        }
+    }
+}
+
+/// Specification of organ dependencies in organ.yaml.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub struct OrganDependencies {
+    #[serde(default)]
+    pub runtime: Option<String>, // e.g. "bun"
+    #[serde(default)]
+    pub organs: Vec<OrganDep>,
+    #[serde(default)]
+    pub system: Vec<SystemDep>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct DependencyReport {
+    pub is_runnable: bool,
+    pub runtime_ok: bool,
+    pub missing_runtime: Option<String>,
+    pub missing_required_organs: Vec<String>,
+    pub missing_optional_organs: Vec<String>,
+    pub missing_required_system: Vec<SystemDep>,
+    pub missing_optional_system: Vec<SystemDep>,
+    pub disabled_tools: Vec<String>,
+    pub disabled_features: Vec<String>,
+}
+
+impl OrganDependencies {
+    pub fn evaluate(&self, mounted_organs: &[String]) -> DependencyReport {
+        let mut report = DependencyReport {
+            is_runnable: true,
+            runtime_ok: true,
+            missing_runtime: None,
+            missing_required_organs: Vec::new(),
+            missing_optional_organs: Vec::new(),
+            missing_required_system: Vec::new(),
+            missing_optional_system: Vec::new(),
+            disabled_tools: Vec::new(),
+            disabled_features: Vec::new(),
+        };
+
+        if let Some(rt) = &self.runtime {
+            if !check_binary_available(rt) {
+                report.runtime_ok = false;
+                report.missing_runtime = Some(rt.clone());
+                report.is_runnable = false;
+            }
+        }
+
+        for od in &self.organs {
+            let present = mounted_organs.iter().any(|m| m.eq_ignore_ascii_case(&od.name));
+            if !present {
+                if od.optional {
+                    report.missing_optional_organs.push(od.name.clone());
+                } else {
+                    report.missing_required_organs.push(od.name.clone());
+                    report.is_runnable = false;
+                }
+            }
+        }
+
+        for sd in &self.system {
+            let present = check_binary_available(&sd.binary);
+            if !present {
+                if sd.optional {
+                    report.disabled_tools.extend(sd.disables_tools.clone());
+                    report.disabled_features.extend(sd.disables_features.clone());
+                    report.missing_optional_system.push(sd.clone());
+                } else {
+                    report.missing_required_system.push(sd.clone());
+                    report.is_runnable = false;
+                }
+            }
+        }
+
+        report
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_dependency_evaluation() {
+        let deps = OrganDependencies {
+            runtime: Some("bun".to_string()),
+            organs: vec![
+                OrganDep { name: "shell".to_string(), optional: false },
+                OrganDep { name: "memory".to_string(), optional: true },
+            ],
+            system: vec![
+                SystemDep {
+                    binary: "gh".to_string(),
+                    optional: true,
+                    scoop: Some("gh".to_string()),
+                    nix: Some("gh".to_string()),
+                    guix: Some("gh".to_string()),
+                    disables_tools: vec!["submit_issue".to_string()],
+                    disables_features: vec!["github_sync".to_string()],
+                },
+                SystemDep {
+                    binary: "some_nonexistent_required_tool_xyz".to_string(),
+                    optional: false,
+                    scoop: None,
+                    nix: None,
+                    guix: None,
+                    disables_tools: vec![],
+                    disables_features: vec![],
+                }
+            ],
+        };
+
+        let report = deps.evaluate(&["shell".to_string()]);
+        assert!(!report.is_runnable);
+        assert_eq!(report.missing_required_system.len(), 1);
+        assert_eq!(report.missing_optional_organs, vec!["memory"]);
+    }
+}

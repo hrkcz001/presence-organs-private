@@ -1,4 +1,4 @@
-﻿name: channel
+name: channel
 version: "0.3.0"
 manual: MANUAL.md
 core: true

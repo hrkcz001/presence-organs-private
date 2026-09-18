@@ -7,5 +7,6 @@ members = [
     "crates/presence-dashboard",
     "crates/organs/packager",
     "crates/organs/manual",
+    "crates/presence-acp",
 ]
 resolver = "2"

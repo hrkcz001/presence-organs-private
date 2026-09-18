@@ -1,13 +1,14 @@
-//! Universal client bridge and communication channel organ for Presence.
-//! Acts as:
-//! 1. An organ tool/sense (send_reply, send_status, incoming_inbox) for agent interactions.
-//! 2. An ACP client adapter (organ-channel --acp) bridging Zed JSON-RPC to Presence daemon.
+//! Universal client communication channel organ for Presence.
+//! Acts strictly as an organ:
+//! - Tools: send_reply, send_status
+//! - Senses: incoming_inbox
+//! Writes to memory/outbox.jsonl and reads memory/inbox.jsonl.
 
 use presence_organ_sdk::{organ_err, organ_ok, OrganArgs, OrganCompatibility, OrganResponse};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value};
 use std::fs::OpenOptions;
-use std::io::{self, BufRead, Write};
+use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -116,7 +117,7 @@ pub fn tool_send_status(root: &Path, status: &str) -> OrganResponse {
 pub fn sense_inbox(root: &Path) -> OrganResponse {
     let inbox = get_inbox_file(root);
     if !inbox.is_file() {
-        organ_ok!("inbox" => Vec::<Value>::new());
+        organ_ok!("inbox" => Vec::<Value>::new())
     }
     match std::fs::read_to_string(&inbox) {
         Ok(raw) => {
@@ -134,95 +135,6 @@ pub fn sense_inbox(root: &Path) -> OrganResponse {
     }
 }
 
-/// Standalone ACP JSON-RPC bridge for Zed and external editors.
-pub fn run_acp_bridge() {
-    let stdin = io::stdin();
-    let mut stdout = io::stdout().lock();
-
-    for line in stdin.lock().lines() {
-        let line = match line {
-            Ok(l) => l,
-            Err(_) => break,
-        };
-        if line.trim().is_empty() {
-            continue;
-        }
-        let msg: Value = match serde_json::from_str(&line) {
-            Ok(v) => v,
-            Err(e) => {
-                let err_res = json!({
-                    "jsonrpc": "2.0",
-                    "error": {"code": -32700, "message": format!("parse error: {e}")}
-                });
-                let _ = writeln!(stdout, "{err_res}");
-                let _ = stdout.flush();
-                continue;
-            }
-        };
-
-        let id = msg.get("id").cloned();
-        let method = msg.get("method").and_then(Value::as_str).unwrap_or("");
-
-        match method {
-            "initialize" => {
-                if let Some(id) = id {
-                    let resp = json!({
-                        "jsonrpc": "2.0", "id": id,
-                        "result": {
-                            "protocolVersion": 1,
-                            "agentCapabilities": {"loadSession": true},
-                            "agentInfo": {"name": "presence-channel", "title": "Presence Channel (ACP)", "version": "0.3.0"},
-                        }
-                    });
-                    let _ = writeln!(stdout, "{resp}");
-                    let _ = stdout.flush();
-                }
-            }
-            "session/new" => {
-                if let Some(id) = id {
-                    let sid = format!("c-{}", uuid::Uuid::new_v4());
-                    let resp = json!({
-                        "jsonrpc": "2.0", "id": id,
-                        "result": {"sessionId": sid}
-                    });
-                    let _ = writeln!(stdout, "{resp}");
-                    let _ = stdout.flush();
-                }
-            }
-            "session/prompt" => {
-                if let Some(id) = id {
-                    let prompt_text = msg.pointer("/params/prompt").and_then(Value::as_str).unwrap_or("");
-                    let sid = msg.pointer("/params/sessionId").and_then(Value::as_str).unwrap_or("active");
-                    // In ACP mode, channel can emit turn_finished and forward to Presence core
-                    let resp = json!({
-                        "jsonrpc": "2.0", "id": id,
-                        "result": {"stopReason": "end_turn"}
-                    });
-                    let _ = writeln!(stdout, "{resp}");
-                    let _ = stdout.flush();
-
-                    // Echo out to outbox as user prompt event
-                    let root = find_workspace_root();
-                    let _ = tool_send_reply(&root, prompt_text, sid);
-                }
-            }
-            "session/cancel" => {
-                // Notification, no id needed
-            }
-            other => {
-                if let Some(id) = id {
-                    let resp = json!({
-                        "jsonrpc": "2.0", "id": id,
-                        "error": {"code": -32601, "message": format!("method not found: {other}")}
-                    });
-                    let _ = writeln!(stdout, "{resp}");
-                    let _ = stdout.flush();
-                }
-            }
-        }
-    }
-}
-
 fn main() {
     let args = OrganArgs::from_env();
 
@@ -233,12 +145,8 @@ fn main() {
             platforms: None,
             features: None,
         };
-        println!("{}", serde_json::to_string(&compat).unwrap()); std::process::exit(0);
-    }
-
-    if args.has("acp") || args.has("bridge") {
-        run_acp_bridge();
-        return;
+        println!("{}", serde_json::to_string(&compat).unwrap());
+        std::process::exit(0);
     }
 
     let root = find_workspace_root();

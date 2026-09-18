@@ -1,5 +1,5 @@
-﻿target/
+target/
 *.exe
 *.pcm
-memory/
+/memory/
 .DS_Store

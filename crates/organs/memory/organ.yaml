@@ -1,0 +1,64 @@
+name: memory
+version: "0.3.0"
+summary: Two-tier episodic and semantic memory management organ for Presence
+manual: MANUAL.md
+entrypoint:
+  windows: organ-memory.exe
+  linux: organ-memory
+  macos: organ-memory
+
+tools:
+  - name: memory_store
+    description: Store or update a memory item in Tier 1 episodic or Tier 2 semantic storage.
+    parameters:
+      type: object
+      required: [key, content]
+      properties:
+        key:
+          type: string
+          description: Cognitive anchor or unique key.
+        content:
+          type: string
+          description: Memory text or fact.
+        tier:
+          type: string
+          enum: [tier1, tier2]
+          default: tier1
+        tags:
+          type: string
+          description: Categorization tags.
+        importance:
+          type: number
+          description: Importance ranking from 1.0 to 10.0 (default 5.0).
+  - name: memory_recall
+    description: Search and recall relevant memories using relevance scoring and temporal decay.
+    parameters:
+      type: object
+      required: [query]
+      properties:
+        query:
+          type: string
+          description: Search keywords.
+        tier:
+          type: string
+          enum: [all, tier1, tier2]
+          default: all
+        tags:
+          type: string
+          description: Optional tag filter.
+        limit:
+          type: integer
+          description: Maximum results (default 5).
+  - name: memory_consolidate
+    description: Promote high-value episodic memories to semantic storage and prune stale records.
+
+senses:
+  - name: memory_stats
+    description: Returns count and distribution statistics across memory tiers.
+    cadence: 120s
+
+stimuli:
+  - name: memory_consolidation_due
+    description: Periodic compaction trigger for memory consolidation.
+    cadence_secs: 1800
+    action: memory_consolidate

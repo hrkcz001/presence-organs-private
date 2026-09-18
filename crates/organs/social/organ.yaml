@@ -1,0 +1,80 @@
+name: social
+version: 0.3.0
+manual: MANUAL.md
+type: cli
+description: "Relational memory, interlocutor profiles, habits, and communication register for Presence"
+author: hrkcz001
+license: Apache-2.0
+
+entrypoint:
+  windows: "organ-social.exe"
+  linux: "organ-social"
+
+compatibility:
+  triad: ">=0.3.0"
+
+tools:
+  - name: social_profile
+    description: "Fetch interlocutor dossier, preferences, communication register, and boundaries"
+    parameters:
+      type: object
+      properties:
+        person_id:
+          type: string
+          description: "Target person ID (e.g. 'owner', 'github:user'). Defaults to 'owner'"
+  - name: social_note_habit
+    description: "Record an observed habit, preference, or conversational boundary for an interlocutor"
+    parameters:
+      type: object
+      properties:
+        person_id:
+          type: string
+          description: "Target person ID"
+        category:
+          type: string
+          description: "Category: preference, boundary, lexicon, workflow"
+        observation:
+          type: string
+          description: "Factual observation or habit statement"
+      required:
+        - person_id
+        - category
+        - observation
+  - name: social_tune_register
+    description: "Adjust tone, brevity, or language register for an interlocutor"
+    parameters:
+      type: object
+      properties:
+        person_id:
+          type: string
+          description: "Target person ID"
+        tone:
+          type: string
+          description: "Communication tone: pragmatic, formal, direct, pedagogical"
+        brevity:
+          type: string
+          description: "Brevity preference: concise, normal, detailed"
+        language:
+          type: string
+          description: "Language preference, e.g. 'Russian dialogue, English code'"
+      required:
+        - person_id
+
+senses:
+  - name: active_interlocutor
+    description: "Grounding block reporting active interlocutor preferences, language, register, and active boundaries"
+    interval_seconds: 30
+
+stimuli:
+  - name: prolonged_absence
+    description: "Emitted when interlocutor has been absent for > 24 hours, preparing a catch-up context on return"
+    cadence_secs: 300
+    action: "prepare_catchup"
+
+slash_commands:
+  - name: whoami
+    description: "Inspect the active interlocutor relational dossier and saved preferences"
+    tool: social_profile
+  - name: social
+    description: "Manage interlocutor profiles and communication habits"
+    tool: social_profile

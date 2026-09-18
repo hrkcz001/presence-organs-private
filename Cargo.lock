@@ -1569,6 +1569,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "organ-social"
+version = "0.3.0"
+dependencies = [
+ "presence-organ-sdk",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "organ-state"
 version = "0.3.0"
 dependencies = [

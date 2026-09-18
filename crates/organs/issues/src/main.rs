@@ -299,6 +299,7 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use uuid::Uuid;
 
     #[test]
     fn test_log_friction_and_recent_sense() {

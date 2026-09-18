@@ -1500,6 +1500,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "organ-manual"
+version = "0.3.0"
+dependencies = [
+ "presence-organ-sdk",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+]
+
+[[package]]
 name = "organ-packager"
 version = "0.3.0"
 dependencies = [

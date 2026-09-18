@@ -1,5 +1,6 @@
-name: packager
+﻿name: packager
 version: 0.3.0
+manual: MANUAL.md
 type: cli
 description: Universal package and organ manager supporting Scoop (SFSU) on Windows and Nix on Linux
 author: hrkcz001

@@ -1,5 +1,6 @@
-name: winsense
+﻿name: winsense
 version: "1.0.0"
+manual: MANUAL.md
 description: "Windows environment sensory organ (active window, user idle, power/battery)"
 entrypoint: "winsense.exe"
 type: "cli"

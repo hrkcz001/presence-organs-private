@@ -1,0 +1,54 @@
+name: manual
+version: "0.3.0"
+manual: MANUAL.md
+author: "presence"
+description: "Interactive documentation librarian for organ specifications and error recovery"
+source:
+  type: "git"
+  url: "https://github.com/hrkcz001/presence-organs"
+  path: "crates/organs/manual"
+entrypoint: "organ-manual.exe"
+type: "cli"
+
+tools:
+  - name: manual_list
+    description: "Discover all installed Presence organs and enumerate available documentation topics"
+    parameters:
+      type: object
+      properties: {}
+      required: []
+  - name: manual_read
+    description: "Read targeted manual section or full documentation for a specific organ"
+    parameters:
+      type: object
+      properties:
+        organ:
+          type: string
+          description: "Name of the organ to read (e.g. winsense, packager, channel)"
+        topic:
+          type: string
+          description: "Optional section topic (e.g. tools, environment, senses, recovery)"
+      required: ["organ"]
+  - name: manual_search
+    description: "Full-text search across all installed organ manuals"
+    parameters:
+      type: object
+      properties:
+        query:
+          type: string
+          description: "Search keyword or error snippet"
+      required: ["query"]
+
+commands:
+  - name: manual
+    tool: manual_read
+    description: "Read organ manual or topic"
+  - name: manuals
+    tool: manual_list
+    description: "List all available organ manuals"
+
+permissions:
+  timeout_seconds: 10
+compatibility:
+  presence: "^0.3.0"
+  api_version: 1

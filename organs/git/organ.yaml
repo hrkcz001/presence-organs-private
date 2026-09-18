@@ -1,5 +1,6 @@
-name: git
+﻿name: git
 version: "1.0.0"
+manual: MANUAL.md
 description: "Non-interactive structured version control organ"
 instructions: "Structured non-interactive Git operations. Use git_checkpoint after coherent edits."
 entrypoint: "git.ts"

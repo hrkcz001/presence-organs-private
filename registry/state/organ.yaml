@@ -1,10 +1,11 @@
-author: "presence"
+﻿author: "presence"
 source:
   type: "git"
   url: "https://github.com/hrkcz001/presence-organs"
   path: "organs/state"
 name: state
 version: "0.3.0"
+manual: MANUAL.md
 description: "Presence cognitive state preservation, session pause, and hibernation"
 instructions: "Snapshot and restore agent card state; pause sessions safely into rest mode."
 entrypoint: "state.ts"

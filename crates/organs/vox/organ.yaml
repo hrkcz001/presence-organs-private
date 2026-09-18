@@ -1,5 +1,6 @@
 ﻿name: vox
 version: "1.0.0"
+manual: MANUAL.md
 author: "presence"
 description: "Native pure-Rust voice sensory and audio capture organ"
 entrypoint: "target/release/organ-vox.exe"

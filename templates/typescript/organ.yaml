@@ -1,5 +1,6 @@
 ﻿name: my_organ
 version: "0.1.0"
+manual: MANUAL.md
 author: "your-name"
 description: "TypeScript organ description"
 entrypoint: "organ.ts"

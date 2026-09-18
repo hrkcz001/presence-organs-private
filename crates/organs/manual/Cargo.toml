@@ -1,0 +1,13 @@
+[package]
+name = "organ-manual"
+version = "0.3.0"
+edition = "2021"
+authors = ["hrkcz001"]
+license = "Apache-2.0"
+description = "Manual discovery and documentation search organ for Presence Triad"
+
+[dependencies]
+presence-organ-sdk = { path = "../../presence-organ-sdk", version = "0.3.0" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+serde_yaml = "0.9"

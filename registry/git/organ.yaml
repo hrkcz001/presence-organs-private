@@ -1,10 +1,11 @@
-author: "presence"
+﻿author: "presence"
 source:
   type: "git"
   url: "https://github.com/hrkcz001/presence-organs"
   path: "organs/git"
 name: git
 version: "0.3.0"
+manual: MANUAL.md
 description: "Non-interactive structured version control organ"
 instructions: "Structured non-interactive Git operations. Use git_checkpoint after coherent edits."
 entrypoint: "git.ts"

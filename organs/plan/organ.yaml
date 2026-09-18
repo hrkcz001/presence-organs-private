@@ -1,5 +1,6 @@
 ﻿name: plan
 version: "1.0.0"
+manual: MANUAL.md
 description: "Goal formulation, active intent, roadmap execution, and session journal"
 instructions: "Maintain active intent via plan_step (bound to active agent card) and record major cognitive milestones via journal_append."
 entrypoint: "plan.ts"

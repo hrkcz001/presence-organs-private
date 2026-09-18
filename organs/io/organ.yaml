@@ -1,5 +1,6 @@
-name: io
+﻿name: io
 version: "1.0.0"
+manual: MANUAL.md
 description: "Physical input/output and filesystem manipulation organ"
 instructions: "Filesystem interaction. Use read_file, write_file, and list_files for file I/O operations."
 entrypoint: "io.ts"

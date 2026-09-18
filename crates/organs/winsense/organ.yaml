@@ -1,5 +1,6 @@
 ﻿name: winsense
 version: "1.0.0"
+manual: MANUAL.md
 author: "presence"
 description: "Native pure-Rust Windows environment sensory organ"
 entrypoint: "target/release/organ-winsense.exe"

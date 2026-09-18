@@ -6,5 +6,6 @@ members = [
     "crates/organs/channel",
     "crates/presence-dashboard",
     "crates/organs/packager",
+    "crates/organs/manual",
 ]
 resolver = "2"

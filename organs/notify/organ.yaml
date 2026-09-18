@@ -1,5 +1,6 @@
 ﻿name: notify
 version: "1.0.0"
+manual: MANUAL.md
 description: "System desktop notifications on Windows (WinRT) and Linux (notify-send)"
 instructions: "Desktop alert interface. Use toast to notify the user of major asynchronous events."
 entrypoint: "notify.ts"

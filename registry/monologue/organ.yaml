@@ -5,6 +5,7 @@ source:
   path: "organs/monologue"
 name: monologue
 version: "0.3.0"
+manual: MANUAL.md
 description: "Silent cognitive inner speech organ for deliberation, reflection, and hypothesis tracking"
 instructions: "Use ponder and reflect for silent internal contemplation and hypothesis formation. Deliberations remain private and do not reach the user."
 entrypoint: "monologue.ts"

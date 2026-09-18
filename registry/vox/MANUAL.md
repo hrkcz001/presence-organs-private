@@ -1,47 +1,29 @@
 # Manual: vox
 
-Native pure-Rust voice and audio sensory perception organ for Presence Triad.
+Native pure-Rust voice sensory and audio capture organ for Presence.
 Version: 0.3.0
 
 ## Overview
-`vox` provides acoustic sensing, voice activity detection, and audio input capture for the Presence Triad.
-It records audio in standard linear PCM (16kHz, 16-bit mono) suitable for local or offline speech-to-text models (e.g. Whisper).
+`organ-vox` governs auditory capture and verbal modulation. It provides bidirectional muting controls and injects modality matching instructions.
 
-## Environment & Dependencies
-- **Platforms**: Windows, Linux, macOS
-- **Runtime / Binary**: Native compiled binary (`organ-vox.exe`), zero external dynamic dependencies.
-- **Permissions**:
-  - Audio input capture access.
-  - File write access to capture destination or OS temp folder.
+## Tools
 
-## Tools Specification
+- `vox_mute`: Mutes local microphone capture.
+- `vox_unmute`: Unmutes local microphone capture.
+- `vox_silence`: Silences agent speech synthesis (TTS).
+- `vox_speak`: Enables agent speech synthesis (TTS).
+- `vox_status`: Queries current microphone and TTS mute states.
+- `vox_listen`: Records audio stream from active microphone (if unmuted).
 
-### `vox_listen`
-- **Description**: Capture an audio stream segment from default microphone endpoint.
-- **Parameters**:
-  - `seconds` (`integer`, optional, default: `3`): Capture duration in seconds.
-  - `file` (`string`, optional): Output file path. Defaults to a temporary `.pcm` file.
-- **Output Schema**:
-  ```json
-  {
-    "status": "ok",
-    "action": "vox_listen",
-    "seconds": 3,
-    "file": "C:\\Users\\...\\vox_capture_12345.pcm",
-    "bytes_recorded": 96000,
-    "sample_rate": 16000,
-    "channels": 1,
-    "format": "pcm_s16le"
-  }
-  ```
+## Slash Commands
 
-## Senses & Stimuli
-- **Senses**:
-  - `hearing`: Samples recent acoustic presence or performs immediate 1-second background listen.
-- **Stimuli**:
-  - `voice_activity` (cadence: 10s, action: `wake_agent`): Detects acoustic energy above threshold to awaken Cortex.
+- `/mute`: Mute user microphone capture.
+- `/unmute`: Unmute user microphone capture.
+- `/silence`: Silence agent speech output (TTS).
+- `/speak`: Re-enable agent speech output (TTS).
+- `/listen`: Capture raw PCM audio stream.
 
-## Failure Modes & Recovery
-- **Error: `Failed to write capture file`**:
-  - *Cause*: Destination directory non-existent or read-only.
-  - *Recovery*: `vox` automatically attempts fallback to `std::env::temp_dir()`.
+## Modality Matching Directive
+`organ-vox` instructs the agent to maintain modality symmetry:
+- When user input arrives via audio/voice transcription: prefer responding via speech (TTS).
+- When user input arrives via typed text: prefer responding in text, unless voice is explicitly requested.

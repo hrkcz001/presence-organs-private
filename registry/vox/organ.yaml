@@ -1,20 +1,27 @@
-﻿name: vox
+name: vox
 version: "0.3.0"
 manual: MANUAL.md
 author: "presence"
+license: Apache-2.0
 description: "Native pure-Rust voice sensory and audio capture organ"
-source:
-  type: "git"
-  url: "https://github.com/hrkcz001/presence-organs"
-  path: "crates/organs/vox"
-entrypoint: "organ-vox.exe"
-type: "cli"
+instructions: "MODALITY MATCHING DIRECTIVE: Prefer responding with voice (TTS) when user input was received via voice. Prefer responding with text when user input was received via text, unless explicitly asked otherwise. Respect /mute (silences microphone) and /silence (silences TTS output)."
+entrypoint: "target/release/organ-vox.exe"
+type: "rust"
+
 senses:
   - name: hearing
     description: "Raw PCM audio capture stream"
+  - name: voice_state
+    description: "Current voice capture and TTS output mute state and modality guidance"
+
+stimuli:
+  - name: voice_activity
+    cadence: 1s
+    description: "Monitors microphone stream energy for human vocalization when unmuted"
+
 tools:
   - name: vox_listen
-    description: "Capture microphone audio stream"
+    description: "Capture microphone audio stream (when unmuted)"
     parameters:
       type: object
       properties:
@@ -26,19 +33,58 @@ tools:
           type: string
           description: "Destination PCM file path"
       required: []
+
+  - name: vox_mute
+    description: "Mute local microphone capture"
+    parameters:
+      type: object
+      properties: {}
+      required: []
+
+  - name: vox_unmute
+    description: "Unmute local microphone capture"
+    parameters:
+      type: object
+      properties: {}
+      required: []
+
+  - name: vox_silence
+    description: "Silence agent voice output (TTS)"
+    parameters:
+      type: object
+      properties: {}
+      required: []
+
+  - name: vox_speak
+    description: "Enable agent voice output (TTS)"
+    parameters:
+      type: object
+      properties: {}
+      required: []
+
+  - name: vox_status
+    description: "Query current microphone and TTS mute states"
+    parameters:
+      type: object
+      properties: {}
+      required: []
+
 commands:
+  - name: mute
+    tool: vox_mute
+    description: "Mute local microphone capture"
+  - name: unmute
+    tool: vox_unmute
+    description: "Unmute local microphone capture"
+  - name: silence
+    tool: vox_silence
+    description: "Silence agent voice output (TTS)"
+  - name: speak
+    tool: vox_speak
+    description: "Enable agent voice output (TTS)"
   - name: listen
     tool: vox_listen
-    description: "Capture microphone audio via Rust vox"
-stimuli:
-  - name: voice_activity
-    description: "Emitted when microphone sound energy exceeds activation threshold"
-    cadence_secs: 5
-    action: "alert"
+    description: "Capture microphone audio"
+
 permissions:
   timeout_seconds: 30
-compatibility:
-  presence: "^0.3.0"
-  api_version: 1
-  platforms:
-    - windows

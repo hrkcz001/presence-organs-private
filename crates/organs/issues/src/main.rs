@@ -60,6 +60,62 @@ fn find_workspace_root() -> PathBuf {
     std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."))
 }
 
+
+pub fn sanitize_pii(text: &str) -> String {
+    let mut out = text.to_string();
+
+    // 1. Redact username if known from environment (USERNAME on Windows, USER on Linux)
+    if let Ok(user) = std::env::var("USERNAME").or_else(|_| std::env::var("USER")) {
+        if !user.is_empty() && user.len() > 1 {
+            out = out.replace(&user, "<username>");
+        }
+    }
+
+    // 2. Redact user profile / home directory paths (USERPROFILE, HOME)
+    if let Ok(home) = std::env::var("USERPROFILE").or_else(|_| std::env::var("HOME")) {
+        if !home.is_empty() {
+            let backslash_home = home.replace('/', "\\");
+            out = out.replace(&backslash_home, "~");
+            let fwd_home = home.replace('\\', "/");
+            out = out.replace(&fwd_home, "~");
+            out = out.replace(&home, "~");
+        }
+    }
+
+    // 3. Redact common secret patterns (API keys, GitHub tokens, Bearer tokens)
+    redact_tokens(&out)
+}
+
+fn redact_tokens(s: &str) -> String {
+    let mut res = String::with_capacity(s.len());
+    for line in s.lines() {
+        let mut line_str = line.to_string();
+        for prefix in &["sk-", "ghp_", "gho_", "github_pat_", "key-", "bearer "] {
+            let mut search_from = 0;
+            while let Some(idx) = line_str[search_from..].to_lowercase().find(prefix) {
+                let abs_idx = search_from + idx;
+                let rest = &line_str[abs_idx..];
+                let token_len = rest.find(|c: char| c.is_whitespace() || c == '"' || c == '\'' || c == ',' || c == ')' || c == ']' || c == '}')
+                    .unwrap_or(rest.len());
+                if token_len > prefix.len() + 4 {
+                    let before = &line_str[..abs_idx];
+                    let after = &line_str[abs_idx + token_len..];
+                    line_str = format!("{before}<redacted-token>{after}");
+                    search_from = abs_idx + "<redacted-token>".len();
+                } else {
+                    search_from = abs_idx + prefix.len();
+                }
+            }
+        }
+        res.push_str(&line_str);
+        res.push('\n');
+    }
+    if !s.ends_with('\n') && res.ends_with('\n') {
+        res.pop();
+    }
+    res
+}
+
 fn slugify(s: &str) -> String {
     let mut out = String::new();
     for c in s.chars().take(40) {
@@ -83,10 +139,12 @@ pub fn tool_log_friction(
     details: &str,
     severity: &str,
 ) -> OrganResponse {
-    let sum = summary.trim();
-    if sum.is_empty() {
+    let sum_raw = summary.trim();
+    if sum_raw.is_empty() {
         organ_err!("summary cannot be empty");
     }
+    let sum = sanitize_pii(sum_raw);
+    let details = sanitize_pii(details);
 
     let logs_dir = root.join("logs");
     let _ = fs::create_dir_all(&logs_dir);
@@ -124,16 +182,18 @@ pub fn tool_report_issue(
     category: &str,
     submit_github: bool,
 ) -> OrganResponse {
-    let t = title.trim();
-    if t.is_empty() {
+    let t_raw = title.trim();
+    if t_raw.is_empty() {
         organ_err!("title cannot be empty");
     }
+    let t = sanitize_pii(t_raw);
+    let body = sanitize_pii(body);
 
     let issues_dir = root.join("logs").join("issues");
     let _ = fs::create_dir_all(&issues_dir);
 
     let ts = now_ts();
-    let slug = slugify(t);
+    let slug = slugify(&t);
     let filename = format!("{:.0}-{slug}.md", ts);
     let filepath = issues_dir.join(&filename);
 
@@ -160,7 +220,7 @@ pub fn tool_report_issue(
         if let Ok(chk) = gh_check {
             if chk.status.success() {
                 let create = Command::new("gh")
-                    .args(&["issue", "create", "--title", t, "--body", &content])
+                    .args(&["issue", "create", "--title", &t, "--body", &content])
                     .output();
                 match create {
                     Ok(out) if out.status.success() => {
@@ -330,5 +390,14 @@ mod tests {
         assert_eq!(list.data["count"], 1);
 
         let _ = fs::remove_dir_all(&temp_dir);
+    }
+
+    #[test]
+    fn test_sanitize_pii_redacts_tokens() {
+        let text = "Error with api key sk-1234567890abcdef and token ghp_secret_gh_token_value_xyz in log";
+        let sanitized = sanitize_pii(text);
+        assert!(!sanitized.contains("sk-1234567890abcdef"));
+        assert!(!sanitized.contains("ghp_secret_gh_token_value_xyz"));
+        assert!(sanitized.contains("<redacted-token>"));
     }
 }

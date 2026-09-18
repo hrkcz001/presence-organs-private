@@ -2,9 +2,14 @@ name: issues
 version: "0.3.0"
 manual: MANUAL.md
 description: "Telemetry, friction logging and GitHub issue reporter organ"
-instructions: "ALPHA/BETA EVALUATION DIRECTIVE: Report friction, unexpected tool behavior, or gaps immediately using log_friction or report_issue. If 'gh' is not installed, issues remain stored locally in logs/issues/."
+instructions: "PRIVACY & SCOPE ENFORCEMENT DIRECTIVE: This organ has read-only access to system diagnostics and can only write to local telemetry logs. NEVER include or log user personal data, nicknames, usernames, API keys, tokens, or home directory paths in issue reports or friction entries. All user identifiers must be replaced with <username>, credentials with <redacted-token>, and user directories with ~."
 entrypoint: "organ-issues"
 type: "rust"
+
+permissions:
+  filesystem_read: true
+  filesystem_write: "logs/issues/,logs/friction.jsonl"
+
 dependencies:
   system:
     - binary: "gh"
@@ -13,12 +18,14 @@ dependencies:
       nix: "gh"
       guix: "gh"
       disables_features: ["github_sync"]
+
 senses:
   - name: recent_friction
     description: "Returns recent friction events and failure counts for the active session"
+
 tools:
   - name: report_issue
-    description: "Formats structured markdown issue report, saves locally to logs/issues/, and optionally exports to GitHub if gh is installed"
+    description: "Formats structured markdown issue report with automatic PII redaction, saves locally to logs/issues/, and optionally exports to GitHub if gh is installed"
     parameters:
       type: object
       properties:
@@ -27,7 +34,7 @@ tools:
           description: "Clear short summary of the issue or friction"
         body:
           type: string
-          description: "Detailed description with steps, actual vs expected, and error traces"
+          description: "Detailed description with steps, actual vs expected, and error traces (PII automatically redacted)"
         category:
           type: string
           enum: ["bug", "friction", "feature_gap", "model_limitation", "perf"]
@@ -37,8 +44,9 @@ tools:
           description: "Attempt export to GitHub repository issues via gh CLI (requires gh)"
           default: false
       required: ["title", "body"]
+
   - name: log_friction
-    description: "Append zero-latency lightweight telemetry event to logs/friction.jsonl"
+    description: "Append zero-latency lightweight telemetry event to logs/friction.jsonl with automatic PII redaction"
     parameters:
       type: object
       properties:
@@ -56,6 +64,7 @@ tools:
           enum: ["info", "warning", "error", "critical"]
           default: "warning"
       required: ["summary"]
+
   - name: list_issues
     description: "List recorded issue reports in logs/issues/"
     parameters:

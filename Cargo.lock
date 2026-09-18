@@ -1496,6 +1496,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "organ-ask"
+version = "0.3.0"
+dependencies = [
+ "presence-organ-sdk",
+ "serde",
+ "serde_json",
+ "serde_yaml",
+ "tempfile",
+]
+
+[[package]]
 name = "organ-channel"
 version = "0.3.0"
 dependencies = [

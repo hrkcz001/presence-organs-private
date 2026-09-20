@@ -1,69 +1,49 @@
-﻿# Presence Organs Registry & SDK
+# Presence Organs
 
-The central organ catalog and developer SDK for the [Presence](https://github.com/hrkcz001/presence) cognitive daemon.
+> Modular peripheral organs catalog, SDK, and GUI dashboard for the Presence autonomous runtime.
 
-## Architecture
+## Overview
+Organs are standalone binaries communicating via JSON over standard streams or FFI. Each organ adheres to the 5-faceted contract:
+- `tool`: Conscious execution requested by the LLM Cortex
+- `sense`: Synchronous state snapshot injected into Cortex prompts
+- `stimulus`: Asynchronous threshold-based poll checked by the Stem heartbeat (0 tokens)
+- `reflex`: Involuntary microsecond action intercepted by Cord
+- `action`: User slash-command via client protocol
 
-Presence strictly separates the core cognitive engine (Cortex, Stem, Cord) from its sensory and action organs:
-- **`presence`**: The daemon engine runtime and hermeneutic circle.
-- **`presence-organs`**: The catalog of sensory/action capabilities and developer SDK.
-- **Third-Party Repositories**: Authors develop organs in their own repositories and submit PRs adding their `organ.yaml` to the `registry/`.
+---
 
-## Directory Layout
+## Quickstart: How to Build All Organs
 
-```text
-presence-organs/
-├── Cargo.toml                    # Root workspace for native Rust organs
-├── crates/
-│   ├── presence-organ-sdk/       # Core Rust SDK for binary organs
-│   └── organs/                   # Native compiled Rust organs (winsense, vox)
-│       ├── winsense/
-│       └── vox/
-├── registry/                     # Manifest catalog (index of all known organs)
-│   ├── channel/organ.yaml
-│   ├── git/organ.yaml
-│   ├── io/organ.yaml
-│   ├── monologue/organ.yaml
-│   ├── notify/organ.yaml
-│   ├── plan/organ.yaml
-│   ├── state/organ.yaml
-│   ├── winsense/organ.yaml
-│   ├── vox/organ.yaml
-│   └── browser/organ.yaml        # Example external community organ
-├── organs/                       # Standard built-in organ scripts
-└── templates/                    # Starter templates for Rust & TypeScript
+### 1. Requirements
+- Rust toolchain (`cargo`, `rustc` 1.80+)
+
+### 2. Build All Organs at Once
+```powershell
+cargo build --release
+```
+Compiled organ binaries will be in `target/release/`:
+- `organ-shell.exe` — Isolated command runner with timeout and UTF-8 bounding
+- `organ-vitals.exe` — Native CPU/RAM/Battery telemetry
+- `organ-ask.exe` — Owner interactive query modal
+- `organ-packager.exe` — Dependency resolver (Scoop/Nix)
+- `presence-dashboard.exe` — Native egui/eframe GUI dashboard
+
+### 3. Deploy to Core Runtime
+Copy the compiled binaries into the `organs/` directory of your `presence-core-private` clone:
+```powershell
+# Example:
+Copy-Item target/release/organ-*.exe ../presence-core-private/organs/
 ```
 
-## Developing an Organ
+---
 
-### 1. TypeScript Organ (Fast dynamic scripting)
-- Implemented in clean typed TypeScript without build steps.
-- Directly executed via Node 26+ native TS runtime, Bun, or Deno.
-- See `templates/typescript/`.
+## Tinkering & Wire-Up Guide for Agent
 
-### 2. Rust Organ (High performance / native OS API)
-- Implemented as a standalone Cargo crate using `presence-organ-sdk`.
-- Builds standalone via `cargo build --release`.
-- See `templates/rust/`.
-
-## Submitting to the Registry
-
-To register your organ, create a PR adding `registry/<your-organ>/organ.yaml`:
-```yaml
-name: my-organ
-version: "1.0.0"
-author: "your-github"
-description: "High-precision sensory organ"
-source:
-  type: "git"
-  url: "https://github.com/your-username/presence-organ-my-organ"
-  tag: "v1.0.0"
-entrypoint: "my-organ.exe"
-type: "cli"
-tools:
-  - name: sample_tool
-    description: "Sample tool action"
+### 1. Running Unit Tests
+```powershell
+cargo test --workspace
 ```
+All organs and the `presence-organ-sdk` should pass.
 
-## License
-MIT
+### 2. Adding / Linking an Organ
+Each organ has its crate in `crates/organs/<name>` and manifest in `registry/<name>/organ.yaml` or `crates/organs/<name>/organ.yaml`. The SDK (`presence-organ-sdk`) provides `resolve_any_binary()` and `OrganContext`.

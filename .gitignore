@@ -3,3 +3,5 @@ target/
 *.pcm
 /memory/
 .DS_Store
+logs/
+*.jsonl

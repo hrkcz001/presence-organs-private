@@ -459,3 +459,89 @@ mod tests {
         assert_eq!(report.missing_optional_organs, vec!["memory"]);
     }
 }
+/// Helper to resolve the first available binary from a disjunctive candidate list (`any_of`).
+pub fn resolve_any_binary(candidates: &[&str]) -> Option<String> {
+    for candidate in candidates {
+        let trimmed = candidate.trim();
+        if trimmed.is_empty() {
+            continue;
+        }
+        #[cfg(windows)]
+        {
+            let probe = if !trimmed.ends_with(".exe") && !trimmed.ends_with(".cmd") && !trimmed.ends_with(".bat") {
+                format!("{trimmed}.exe")
+            } else {
+                trimmed.to_string()
+            };
+            if let Ok(path) = std::env::var("PATH") {
+                for p in std::env::split_paths(&path) {
+                    let full = p.join(&probe);
+                    if full.is_file() {
+                        return Some(trimmed.to_string());
+                    }
+                    let direct = p.join(trimmed);
+                    if direct.is_file() {
+                        return Some(trimmed.to_string());
+                    }
+                }
+            }
+        }
+        #[cfg(not(windows))]
+        {
+            if let Ok(path) = std::env::var("PATH") {
+                for p in std::env::split_paths(&path) {
+                    let full = p.join(trimmed);
+                    if full.is_file() {
+                        return Some(trimmed.to_string());
+                    }
+                }
+            }
+        }
+    }
+    None
+}
+
+/// Contextual capabilities report scoped strictly to what this organ declared in its dependencies and what was satisfied.
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct OrganContext {
+    #[serde(default)]
+    pub satisfied_organs: Vec<String>,
+    #[serde(default)]
+    pub satisfied_binaries: Vec<String>,
+    #[serde(default)]
+    pub disabled_features: Vec<String>,
+    #[serde(default)]
+    pub disabled_tools: Vec<String>,
+}
+
+impl OrganContext {
+    /// Loads the organ-scoped environment context from PRESENCE_ORGAN_CONTEXT env variable.
+    pub fn current() -> Self {
+        if let Ok(raw) = std::env::var("PRESENCE_ORGAN_CONTEXT") {
+            if let Ok(ctx) = serde_json::from_str::<OrganContext>(&raw) {
+                return ctx;
+            }
+        }
+        Self::default()
+    }
+
+    /// Checks if a declared organ dependency was satisfied for this organ.
+    pub fn has_organ(&self, organ_name: &str) -> bool {
+        self.satisfied_organs.iter().any(|o| o.eq_ignore_ascii_case(organ_name))
+    }
+
+    /// Checks if any of the declared candidate organs was satisfied.
+    pub fn has_any_organ(&self, candidates: &[&str]) -> bool {
+        candidates.iter().any(|c| self.has_organ(c))
+    }
+
+    /// Checks if a declared system binary dependency was satisfied for this organ.
+    pub fn has_binary(&self, bin: &str) -> bool {
+        self.satisfied_binaries.iter().any(|b| b.eq_ignore_ascii_case(bin))
+    }
+
+    /// Checks if a feature is disabled by dependency policy.
+    pub fn is_feature_disabled(&self, feature: &str) -> bool {
+        self.disabled_features.iter().any(|f| f.eq_ignore_ascii_case(feature))
+    }
+}

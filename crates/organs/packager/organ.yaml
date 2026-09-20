@@ -101,8 +101,12 @@ slash_commands:
     tool: packager_search
 dependencies:
   system:
-    - binary: sfsu
-      scoop: sfsu
+    - platform: windows
+      binary: scoop
+      optional: false
+    - platform: windows
+      binary: sfsu
       optional: true
-      disables_features:
-        - "fast_json_search"
+    - platform: linux
+      any_of: ["nix", "guix"]
+      optional: false

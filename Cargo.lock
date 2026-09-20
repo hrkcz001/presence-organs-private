@@ -1610,6 +1610,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "organ-vitals"
+version = "0.3.0"
+dependencies = [
+ "presence-organ-sdk",
+ "serde",
+ "serde_json",
+]
+
+[[package]]
 name = "organ-vox"
 version = "0.3.0"
 dependencies = [

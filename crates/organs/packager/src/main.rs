@@ -2,7 +2,7 @@
 //! Bridges fast system package managers (SFSU/Scoop on Windows, Nix on Linux)
 //! and manages presence organ installation and lifecycle.
 
-use presence_organ_sdk::{organ_err, organ_ok, OrganArgs, OrganCompatibility};
+use presence_organ_sdk::{organ_err, organ_ok, OrganArgs, OrganCompatibility, OrganContext};
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::path::{Path, PathBuf};
@@ -40,11 +40,13 @@ enum Backend {
 
 impl Backend {
     fn detect() -> Self {
+        let ctx = OrganContext::current();
+
         #[cfg(target_os = "windows")]
         {
-            if has_command("sfsu.exe") || has_command("sfsu") {
+            if ctx.has_binary("sfsu") || has_command("sfsu.exe") || has_command("sfsu") {
                 Backend::Sfsu
-            } else if has_command("scoop.ps1") || has_command("scoop") {
+            } else if ctx.has_binary("scoop") || has_command("scoop.ps1") || has_command("scoop") {
                 Backend::Scoop
             } else {
                 Backend::Unknown
@@ -52,9 +54,9 @@ impl Backend {
         }
         #[cfg(not(target_os = "windows"))]
         {
-            if std::env::var("GUIX_ENVIRONMENT").is_ok() || has_command("guix") {
+            if std::env::var("GUIX_ENVIRONMENT").is_ok() || ctx.has_binary("guix") || has_command("guix") {
                 Backend::Guix
-            } else if has_command("nix") || has_command("nix-env") {
+            } else if ctx.has_binary("nix") || ctx.has_binary("nix-env") || has_command("nix") || has_command("nix-env") {
                 Backend::Nix
             } else {
                 Backend::Unknown

@@ -25,39 +25,14 @@ fn chrono_now() -> String {
     format!("{d}")
 }
 
-#[cfg(windows)]
+/// Queries user idle time via sensory bridge or environment without direct user32 FFI in organ-ask.
 pub fn get_user_idle_seconds() -> u64 {
-    use std::mem;
-    #[repr(C)]
-    #[allow(non_snake_case)]
-    struct LASTINPUTINFO {
-        cbSize: u32,
-        dwTime: u32,
-    }
-    #[link(name = "user32")]
-    extern "system" {
-        fn GetLastInputInfo(plii: *mut LASTINPUTINFO) -> i32;
-    }
-    extern "system" {
-        fn GetTickCount() -> u32;
-    }
-    unsafe {
-        let mut lii = LASTINPUTINFO {
-            cbSize: mem::size_of::<LASTINPUTINFO>() as u32,
-            dwTime: 0,
-        };
-        if GetLastInputInfo(&mut lii) != 0 {
-            let now = GetTickCount();
-            let elapsed_ms = now.saturating_sub(lii.dwTime);
-            (elapsed_ms / 1000) as u64
-        } else {
-            0
+    // If running in environment with winsense / linsense telemetry exported
+    if let Ok(val) = std::env::var("PRESENCE_USER_IDLE_SECS") {
+        if let Ok(parsed) = val.parse::<u64>() {
+            return parsed;
         }
     }
-}
-
-#[cfg(not(windows))]
-pub fn get_user_idle_seconds() -> u64 {
     0
 }
 

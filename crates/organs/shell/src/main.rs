@@ -70,11 +70,19 @@ fn truncate_safe(s: &str, max_bytes: usize) -> String {
 
 fn build_shell_command(command: &str) -> Command {
     if cfg!(windows) {
-        let mut cmd = Command::new("pwsh.exe");
-        cmd.args(&["-NoProfile", "-NonInteractive", "-Command", command]);
+        let candidates = ["pwsh", "powershell", "cmd"];
+        let resolved = presence_organ_sdk::resolve_any_binary(&candidates).unwrap_or_else(|| "cmd".to_string());
+        let mut cmd = Command::new(&resolved);
+        if resolved == "cmd" || resolved == "cmd.exe" {
+            cmd.args(&["/c", command]);
+        } else {
+            cmd.args(&["-NoProfile", "-NonInteractive", "-Command", command]);
+        }
         cmd
     } else {
-        let mut cmd = Command::new("sh");
+        let candidates = ["bash", "zsh", "sh"];
+        let resolved = presence_organ_sdk::resolve_any_binary(&candidates).unwrap_or_else(|| "sh".to_string());
+        let mut cmd = Command::new(resolved);
         cmd.args(&["-c", command]);
         cmd
     }

@@ -1,0 +1,12 @@
+[package]
+name = "organ-vitals"
+version = "0.3.0"
+edition = "2021"
+description = "Native pure-Rust real-time system resource and vitals sensory organ for Presence"
+authors = ["hrkcz001"]
+license = "Apache-2.0"
+
+[dependencies]
+presence-organ-sdk = { path = "../../presence-organ-sdk" }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
